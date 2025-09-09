@@ -35,8 +35,8 @@ module main_control_unit(input [6:0] opcode,
 		//Note: ALUOp have following values:
 		//00: ADD (for LW, SW, etc.)
 		//01: SUB (for branches)
-		//10: Use funct3/funct7 (R-type and I-type)
-		//11: Not defined yet
+		//10: R-type
+		//11: I-type
 		ALUOp = 2'bx;
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
@@ -74,6 +74,12 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 0; //Don't write to memory
 				ALUSrc = 0; //Don't use an immediate (use the values specified in the registers)
 				RegWrite = 0; //Don't write anything to register file
+			end
+			//R-type instructions
+			7'b0110011 : 
+			begin
+				Branch = 0;
+
 			end
 		endcase
 
