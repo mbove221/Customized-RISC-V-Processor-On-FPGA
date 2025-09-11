@@ -1,4 +1,3 @@
-
 /*
 * @input[6:0] funct7 - 7 most significant bits coming from instruction field
 * funct3 - 3 bit input coming from instruction field specifying operation
