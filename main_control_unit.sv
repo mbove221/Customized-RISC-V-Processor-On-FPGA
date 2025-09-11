@@ -1,5 +1,7 @@
 
 /*
+* @input[6:0] funct7 - 7 most significant bits coming from instruction field
+* funct3 - 3 bit input coming from instruction field specifying operation
 * @input[6:0] opcode - 7-bit opcode input from 7 least signifcant bits from
 * instruction
 * @output Branch - 1-bit signal indicating we might want to branch (assuming
@@ -7,8 +9,7 @@
 * @output MemRead - 1-bit signal specifying if we want to read from memory
 * @output MemtoReg - 1-bit control signal for mux deciding to take output from
 * ALU or data memory
-* @output ALUOp - 2-bit control signal to ALU specifying which operation needs
-* to be performed
+* @output[3:0] ALUOp - 4-bit control signal to signify ALU operation
 * 00: ADD (for LW, SW, etc.)
 * 01: SUB (for branches)
 * 10: Use funct3/funct7 (R-type and I-type)
@@ -21,14 +22,28 @@
 * register file or not
 */
 module main_control_unit(input [6:0] opcode,
+			input [6:0] funct7,
+			input [2:0] funct3,
 			output logic Branch,
 			output logic MemRead,
 			output logic MemtoReg,
-			output logic[1:0] ALUOp,
+			output logic[3:0] ALUOp,
 			output logic MemWrite,
 			output logic ALUSrc,
 			output logic RegWrite);
+	// Define instruction opcodes as constants
+	localparam [3:0] ADD  = 4'b0000;
+	localparam [3:0] SUB  = 4'b0001;
+	localparam [3:0] XOR  = 4'b0010;
+	localparam [3:0] OR   = 4'b0011;
+	localparam [3:0] AND  = 4'b0100;
+	localparam [3:0] SLL  = 4'b0101;
+	localparam [3:0] SRL = 4'b0110;
+	localparam [3:0] SRA = 4'b0111;
+	localparam [3:0] SLT  = 4'b1000;
+	localparam [3:0] SLTU = 4'b1001;
 
+	logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
 		MemRead = 1'bx;
 		MemtoReg = 1'bx;
@@ -37,7 +52,7 @@ module main_control_unit(input [6:0] opcode,
 		//01: SUB (for branches)
 		//10: R-type
 		//11: I-type
-		ALUOp = 2'bx;
+		ALUOp = x;
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
@@ -79,9 +94,118 @@ module main_control_unit(input [6:0] opcode,
 			7'b0110011 : 
 			begin
 				Branch = 0;
-
+				MemRead = 0; //Don't read from memory
+				MemtoReg = 0; //Don't consider writing from memory
+				ALUOp = 0; //Default ALU operation
+				MemWrite = 0; //Don't write to memory
+				ALUSrc = 0; //Use the value specified in the register (R-type)
+				RegWrite = 1; //Write to the register file
+				case(funct3):
+					//0 : Add or Subtract
+					3'b000:
+					begin
+						case(funct7):
+							7'h00 : ALUOp = ADD; //Add ALU Function
+							7'h20 : ALUOp = SUB; //Subtract ALU function
+							//NOTE: DO WE Need default here? Don't
+							//think so because ALUOp already
+							//assigned at start
+						endcase
+					end
+					//1 : SLL
+					3'b001 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = SLL;
+						endcase
+					end
+					//2 : SLT
+					3'b010 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = SLT;
+						endcase
+					end
+					//3 : SLTU
+					3'b011 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = SLTU;
+						endcase
+					end
+					//4 : XOR
+					3'b100 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = XOR;
+						endcase
+					end
+					//5 : SRL or SRA
+					3'b101 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = SRL;
+							7'h20 : ALUOp = SRA;
+						endcase
+					end
+					//6 : OR
+					3'b110 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = OR;
+						endcase
+					end
+					//7 : AND
+					3'b111 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = AND;
+						endcase
+					end
+				endcase
+			end
+			//I-type instructions (not including jalr or memory
+			//instructions)
+			7'b0010011 :
+			begin
+				Branch = 0;
+				MemRead = 0; //Don't read from memory
+				MemtoReg = 0; //Don't consider writing from memory
+				ALUOp = 0; //Default to ADD operation
+				MemWrite = 0; //Don't write to memory
+				ALUSrc = 0; //Use the value specified in the register (R-type)
+				RegWrite = 1; //Write to the register file
+				case(funct3):
+					//0 : Add
+					3'b000: ALUOp = ADD; //Add ALU Function
+					//1 : SLL
+					3'b001 :
+					begin
+						if(funct7 == 0) begin
+							ALUOp = SLL;
+						end
+					end
+					//2 : SLT
+					3'b010 : ALUOp = SLT;
+					//3 : SLTU
+					3'b011 : ALUOp = SLTU;
+					//4 : XOR
+					3'b100 : ALUOp = XOR;
+					//5 : SRL or SRA
+					3'b101 :
+					begin
+						case(funct7): 
+							7'h00 : ALUOp = SRL;
+							7'h20 : ALUOp = SRA;
+						endcase
+					end
+					//6 : OR
+					3'b110 : ALUOp = OR;
+					//7 : AND
+					3'b111 : ALUOp = AND;
+				endcase
 			end
 		endcase
-
+		
 	end
 endmodule
