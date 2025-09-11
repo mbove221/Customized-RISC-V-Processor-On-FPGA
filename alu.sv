@@ -7,7 +7,7 @@
 * @output zero - 1-bit control signal used for branch instructions
 */
 
-include "alu_op_pkg.sv"
+import alu_op_pkg::*;
 
 module alu(input [31:0] alu_in1,
 	input [31:0] alu_in2,
