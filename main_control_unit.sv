@@ -1,3 +1,4 @@
+import alu_op_pkg::*;
 /*
 * @input[6:0] funct7 - 7 most significant bits coming from instruction field
 * funct3 - 3 bit input coming from instruction field specifying operation
@@ -26,34 +27,25 @@ module main_control_unit(input [6:0] opcode,
 			output logic Branch,
 			output logic MemRead,
 			output logic MemtoReg,
-			output logic[3:0] ALUOp,
+			output alu_op_t ALUOp,
 			output logic MemWrite,
 			output logic ALUSrc,
 			output logic RegWrite);
-	// Define instruction opcodes as constants
-	localparam [3:0] ADD  = 4'b0000;
-	localparam [3:0] SUB  = 4'b0001;
-	localparam [3:0] XOR  = 4'b0010;
-	localparam [3:0] OR   = 4'b0011;
-	localparam [3:0] AND  = 4'b0100;
-	localparam [3:0] SLL  = 4'b0101;
-	localparam [3:0] SRL = 4'b0110;
-	localparam [3:0] SRA = 4'b0111;
-	localparam [3:0] SLT  = 4'b1000;
-	localparam [3:0] SLTU = 4'b1001;
 
 	logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
+		Branch = 1'bx;
 		MemRead = 1'bx;
 		MemtoReg = 1'bx;
 		//Note: ALUOp have following values:
 		//0: ADD (for LW, SW, add, addi, etc.)
 		//1: SUB (for branches, sub, etc.)
 		//...other types
-		ALUOp = x;
+		ALUOp = alu_op_t'(x); //Default to unknown
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
+
 		case(opcode)
 			//Load from memory instruction 
 			7'b0000011 : 
@@ -109,7 +101,7 @@ module main_control_unit(input [6:0] opcode,
 							//think so because ALUOp already
 							//assigned at start
 						endcase
-					end
+					end		
 					//1 : SLL
 					3'b001 :
 					begin
