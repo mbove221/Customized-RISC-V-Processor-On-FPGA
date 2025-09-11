@@ -48,10 +48,9 @@ module main_control_unit(input [6:0] opcode,
 		MemRead = 1'bx;
 		MemtoReg = 1'bx;
 		//Note: ALUOp have following values:
-		//00: ADD (for LW, SW, etc.)
-		//01: SUB (for branches)
-		//10: R-type
-		//11: I-type
+		//0: ADD (for LW, SW, add, addi, etc.)
+		//1: SUB (for branches, sub, etc.)
+		//...other types
 		ALUOp = x;
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
