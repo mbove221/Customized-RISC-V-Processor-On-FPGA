@@ -41,7 +41,7 @@ module main_control_unit(input [6:0] opcode,
 		//0: ADD (for LW, SW, add, addi, etc.)
 		//1: SUB (for branches, sub, etc.)
 		//...other types
-		ALUOp = alu_op_t'(x); //Default to ADD operation
+		ALUOp = alu_op_t'(x); //Default to unknown
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
