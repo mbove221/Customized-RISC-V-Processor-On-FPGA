@@ -41,7 +41,7 @@ module main_control_unit(input [6:0] opcode,
 		//0: ADD (for LW, SW, add, addi, etc.)
 		//1: SUB (for branches, sub, etc.)
 		//...other types
-		ALUOp = alu_op_t'(x); //Default to unknown
+		ALUOp = alu_op_t'(4'hx); //Default to unknown
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
@@ -53,7 +53,7 @@ module main_control_unit(input [6:0] opcode,
 				Branch = 0; //We don't want to consider branching
 				MemRead = 1; //We want to read from memory
 				MemtoReg = 1; //Load value from memory to register
-				ALUOp = 0; //Add ALU function
+				ALUOp = ADD; //Add ALU function
 				MemWrite = 0; //Not writing to memory
 				ALUSrc = 1; //Use 32-bit immediate
 				RegWrite = 1; //Write loaded memory data into register file
@@ -64,7 +64,7 @@ module main_control_unit(input [6:0] opcode,
 				Branch = 0; //Don't branch
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't write to register
-				ALUOp = 0; //Add ALU function
+				ALUOp = ADD; //Add ALU function
 				MemWrite = 1; //Write to memory
 				ALUSrc = 1; //Use 32-bit immediate to add to base address
 				RegWrite = 0; //Don't write anything to register file
@@ -75,7 +75,7 @@ module main_control_unit(input [6:0] opcode,
 				Branch = 1; //Consider branching
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
-				ALUOp = 1; //Subtract ALU function
+				ALUOp = SUB; //Subtract ALU function
 				MemWrite = 0; //Don't write to memory
 				ALUSrc = 0; //Don't use an immediate (use the values specified in the registers)
 				RegWrite = 0; //Don't write anything to register file
@@ -86,15 +86,15 @@ module main_control_unit(input [6:0] opcode,
 				Branch = 0;
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
-				ALUOp = 0; //Default ALU operation
+				ALUOp = ADD; //Default ALU operation
 				MemWrite = 0; //Don't write to memory
 				ALUSrc = 0; //Use the value specified in the register (R-type)
 				RegWrite = 1; //Write to the register file
-				case(funct3):
+				case(funct3)
 					//0 : Add or Subtract
 					3'b000:
 					begin
-						case(funct7):
+						case(funct7)
 							7'h00 : ALUOp = ADD; //Add ALU Function
 							7'h20 : ALUOp = SUB; //Subtract ALU function
 							//NOTE: DO WE Need default here? Don't
@@ -105,35 +105,35 @@ module main_control_unit(input [6:0] opcode,
 					//1 : SLL
 					3'b001 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = SLL;
 						endcase
 					end
 					//2 : SLT
 					3'b010 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = SLT;
 						endcase
 					end
 					//3 : SLTU
 					3'b011 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = SLTU;
 						endcase
 					end
 					//4 : XOR
 					3'b100 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = XOR;
 						endcase
 					end
 					//5 : SRL or SRA
 					3'b101 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = SRL;
 							7'h20 : ALUOp = SRA;
 						endcase
@@ -141,14 +141,14 @@ module main_control_unit(input [6:0] opcode,
 					//6 : OR
 					3'b110 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = OR;
 						endcase
 					end
 					//7 : AND
 					3'b111 :
 					begin
-						case(funct7): 
+						case(funct7)
 							7'h00 : ALUOp = AND;
 						endcase
 					end
@@ -161,11 +161,11 @@ module main_control_unit(input [6:0] opcode,
 				Branch = 0;
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
-				ALUOp = 0; //Default to ADD operation
+				ALUOp = ADD; //Default to ADD operation
 				MemWrite = 0; //Don't write to memory
 				ALUSrc = 0; //Use the value specified in the register (R-type)
 				RegWrite = 1; //Write to the register file
-				case(funct3):
+				case(funct3)
 					//0 : Add
 					3'b000: ALUOp = ADD; //Add ALU Function
 					//1 : SLL
@@ -184,7 +184,7 @@ module main_control_unit(input [6:0] opcode,
 					//5 : SRL or SRA
 					3'b101 :
 					begin
-						case(funct7): 
+						case(funct7) 
 							7'h00 : ALUOp = SRL;
 							7'h20 : ALUOp = SRA;
 						endcase
