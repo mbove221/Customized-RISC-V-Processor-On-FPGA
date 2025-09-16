@@ -1,4 +1,4 @@
-module data_memory #(
+module memory #(
     //Default to 32 KB RAM (1024 entries * 32-bits wide each) = (2^10 * 32 = 2^10 * 2^5 = 2^15 bits = 32 KB)
     parameter ADDR_WIDTH = 10,
     DATA_WIDTH = 32
