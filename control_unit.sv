@@ -21,7 +21,7 @@ import alu_op_pkg::*;
 * @output RegWrite - 1-bit control signal to specify if we are writing to
 * register file or not
 */
-module main_control_unit(input [6:0] opcode,
+module control_unit(input [6:0] opcode,
 			input [6:0] funct7,
 			input [2:0] funct3,
 			output logic Branch,
@@ -32,7 +32,7 @@ module main_control_unit(input [6:0] opcode,
 			output logic ALUSrc,
 			output logic RegWrite);
 
-	logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
+	//logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
 		Branch = 1'bx;
 		MemRead = 1'bx;
@@ -163,7 +163,7 @@ module main_control_unit(input [6:0] opcode,
 				MemtoReg = 0; //Don't consider writing from memory
 				ALUOp = ADD; //Default to ADD operation
 				MemWrite = 0; //Don't write to memory
-				ALUSrc = 0; //Use the value specified in the register (R-type)
+				ALUSrc = 1; //Use the value specified in the immediate (I-type)
 				RegWrite = 1; //Write to the register file
 				case(funct3)
 					//0 : Add
