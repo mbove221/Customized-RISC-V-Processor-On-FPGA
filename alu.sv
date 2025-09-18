@@ -25,12 +25,9 @@ module alu(input [31:0] alu_in1,
             alu_op_pkg::OR: alu_out = alu_in1 | alu_in2;                       // OR
             alu_op_pkg::AND: alu_out = alu_in1 & alu_in2;                       // AND
             alu_op_pkg::SLL: alu_out = alu_in1 << shamt;                 // SLL, only 5 bits because u can shift only 32 times, 
-                                                                                // here im assuming that the last 5 bits are what contain 
-                                                                                // the shamt, we might need to change this based on the actual 
-                                                                                // implementation of the datapath.
             alu_op_pkg::SRL: alu_out = alu_in1 >> shamt;                 // SRL (logical right shift)
             alu_op_pkg::SRA: alu_out = $signed(alu_in1) >>> shamt;       // SRA (arithmetic right shift), the reference sheet said MSB-extends 
-                                                                                // so its signed extension, >>> does signed arithmetic extension.
+                                                                        // so its signed extension, >>> does signed arithmetic extension.
             alu_op_pkg::SLT: alu_out = ($signed(alu_in1) < $signed(alu_in2)) ? 32'd1 : 32'd0; // SLT (signed compare)
             alu_op_pkg::SLTU: alu_out = (alu_in1 < alu_in2) ? 32'd1 : 32'd0;     // SLTU (unsigned compare)
             default: alu_out = 32'd0; //to prevent inferred latches
