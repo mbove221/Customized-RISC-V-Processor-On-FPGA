@@ -3,7 +3,7 @@ module memory #(
     parameter ADDR_WIDTH = 10,
     DATA_WIDTH = 32
 )(
-    input clk,
+    input clk, 
     input we,
     //input re, //Will need when we have pipelined processor
     input [ADDR_WIDTH-1 : 0] addr,
