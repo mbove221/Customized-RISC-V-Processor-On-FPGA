@@ -11,10 +11,14 @@ module regfile_ff #(
   output logic [W-1:0]          rdata1,
   output logic [W-1:0]          rdata2
 );
-
+  
   // declare register array as FFs
   logic [W-1:0] regs [0:N-1];
 
+  initial begin
+    for(int i=0; i<32; i++) regs[i] = i;
+  end
+  
   always_comb begin
     if (wen) regs[waddr] <= wdata;
     rdata1 = regs[raddr1];
