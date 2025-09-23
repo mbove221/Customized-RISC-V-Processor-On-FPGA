@@ -81,10 +81,8 @@ module riscv_processor (
     // ========== Register File ==========
     regfile_ff #(
         .N(32),
-        .W(32),
-        .ZERO_REG(0)
+        .W(32)
     ) reg_file (
-        .clk(clk),
         .wen(RegWrite),
         .waddr(rd),
         .wdata(reg_write_data),
