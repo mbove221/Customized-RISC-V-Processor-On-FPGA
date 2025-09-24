@@ -143,7 +143,7 @@ module riscv_processor (
     logic [31:0] branch_target;
     adder #(.WIDTH(32)) branch_adder (
         .in0(pc_current),
-        .in1(imm_extended<<1),        // it was shown in the diagram
+        .in1(32'hDEAD)//.in1(imm_extended<<1),        
         .sum(branch_target)
     );
 
