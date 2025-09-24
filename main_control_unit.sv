@@ -21,7 +21,7 @@ import alu_op_pkg::*;
 * @output RegWrite - 1-bit control signal to specify if we are writing to
 * register file or not
 */
-module control_unit(input [6:0] opcode,
+module main_control_unit(input [6:0] opcode,
 			input [6:0] funct7,
 			input [2:0] funct3,
 			output logic Branch,

@@ -7,7 +7,7 @@ module control_unit_tb();
     logic RegWrite, MemRead, MemWrite, Branch, ALUSrc;
     logic [3:0] ALUOp;
 
-    control_unit dut (
+    main_control_unit dut (
         .opcode(opcode),
         .funct3(funct3),
         .funct7(funct7),
