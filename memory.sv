@@ -10,12 +10,15 @@ module memory #(
     input [DATA_WIDTH-1 : 0] write_data,
     output logic [DATA_WIDTH-1 : 0] read_data
 );
-    initial begin
-        memory[0] = 32'h003100b3;
-    end
+    
     // Declare ram logic as 2^ADDR_WIDTH-sized array (i.e. 10 = 1024 entries) with DATA_WIDTH-sized entries
     logic [DATA_WIDTH-1 : 0] ram [(1<<ADDR_WIDTH)-1 : 0];
-    always_ff @(posedge clk) begin
+    
+    initial begin
+        ram[0] = 32'h003100b3;
+    end
+
+    always @(posedge clk) begin
         if(we) begin
             ram[addr] <= write_data;
         end

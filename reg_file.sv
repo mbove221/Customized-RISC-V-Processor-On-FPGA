@@ -1,7 +1,7 @@
 // regfile_ff.sv
 module regfile_ff #(
   parameter N = 32,            // number of registers
-  parameter W = 32,            // width
+  parameter W = 32            // width
 ) (
   input  logic                  wen,
   input  logic [$clog2(N)-1:0]  waddr, // clog2 is ceiling of log2 of N
@@ -19,8 +19,11 @@ module regfile_ff #(
     for(int i=0; i<32; i++) regs[i] = i;
   end
   
-  always_comb begin
+  always begin
     if (wen) regs[waddr] <= wdata;
+  end
+
+  always_comb begin
     rdata1 = regs[raddr1];
     rdata2 = regs[raddr2];
   end

@@ -1,5 +1,5 @@
 
-module control_unit_tb();
+module main_control_unit_tb();
 
     logic [6:0] opcode;
     logic [2:0] funct3;
