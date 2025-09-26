@@ -13,6 +13,7 @@ module single_cycle_tb();
         @(posedge clk);
         #1; reset_n = 1;
         @(posedge clk);
+        @(posedge clk);
         #1;
         $finish;
    end

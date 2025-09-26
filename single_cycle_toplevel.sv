@@ -83,6 +83,7 @@ module riscv_processor (
         .N(32),
         .W(32)
     ) reg_file (
+        .clk(clk),
         .wen(RegWrite),
         .waddr(rd),
         .wdata(reg_write_data),
