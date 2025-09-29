@@ -1,4 +1,4 @@
-module memory #(
+module data_memory #(
     //Default to 32 KB RAM (1024 entries * 32-bits wide each) = (2^10 * 32 = 2^10 * 2^5 = 2^15 bits = 32 KB)
     parameter ADDR_WIDTH = 10,
     DATA_WIDTH = 32
@@ -13,10 +13,6 @@ module memory #(
     
     // Declare ram logic as 2^ADDR_WIDTH-sized array (i.e. 10 = 1024 entries) with DATA_WIDTH-sized entries
     logic [DATA_WIDTH-1 : 0] ram [(1<<ADDR_WIDTH)-1 : 0];
-    
-    initial begin
-        ram[0] = 32'h003100b3;
-    end
 
     always @(posedge clk) begin
         if(we) begin

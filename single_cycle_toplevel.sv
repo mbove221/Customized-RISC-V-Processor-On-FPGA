@@ -43,7 +43,7 @@ module riscv_processor (
     );
 
     // ========== Instruction Memory ==========
-    memory #(
+    instruction_memory #(
         .ADDR_WIDTH(10),  // 1024 instructions
         .DATA_WIDTH(32)
     ) instr_mem (
@@ -84,6 +84,7 @@ module riscv_processor (
         .W(32)
     ) reg_file (
         .clk(clk),
+        .reset_n(reset_n),
         .wen(RegWrite),
         .waddr(rd),
         .wdata(reg_write_data),
@@ -118,7 +119,7 @@ module riscv_processor (
     );
 
     // ========== Data Memory ==========
-    memory #(
+    data_memory #(
         .ADDR_WIDTH(10),  // 1024 words of data memory
         .DATA_WIDTH(32)
     ) data_mem (
