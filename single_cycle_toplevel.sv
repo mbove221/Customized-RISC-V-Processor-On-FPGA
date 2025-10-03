@@ -14,6 +14,8 @@ module riscv_processor (
     
     // Control signals
     logic Branch, MemRead, MemtoReg, MemWrite, ALUSrc, RegWrite;
+    logic [1:0] MemReadSize;
+    logic MemReadSigned;
     alu_op_pkg::alu_op_t ALUOp;
     
     // Instruction fields
@@ -63,7 +65,7 @@ module riscv_processor (
     assign funct7 = instruction[31:25];
     assign imm_12bit = instruction[31:20];  // I-type immediate
     assign shamt = instruction[24:20];      // Shift amount for shift operations is rs2
-
+    
     // ========== Control Unit ==========
     main_control_unit control_unit (
         .opcode(opcode),
@@ -75,7 +77,9 @@ module riscv_processor (
         .ALUOp(ALUOp),
         .MemWrite(MemWrite),
         .ALUSrc(ALUSrc),
-        .RegWrite(RegWrite)
+        .RegWrite(RegWrite),
+        .MemReadSigned(MemReadSigned),
+        .MemReadSize(MemReadSize)
     );
 
     // ========== Register File ==========
@@ -100,12 +104,17 @@ module riscv_processor (
         .imm_out(imm_extended)
     );
 
+    logic [31:0] mux_inputs [2];  
+    assign mux_inputs[0] = reg_read_data2;
+    assign mux_inputs[1] = imm_extended;
+
     // ========== ALU Input Mux ==========
-    mux #(.WIDTH(32)) alu_src_mux (
-        .in0(reg_read_data2),      // Register data
-        .in1(imm_extended),        // Immediate data
+    mux #(.NUM_INPUTS(2)) alu_src_mux (
+        .data_in(mux_inputs),
+        // .data_in[0](reg_read_data2),      // Register data
+        // .data_in[1](imm_extended),        // Immediate data
         .sel(ALUSrc),
-        .out(alu_input2)
+        .data_out(alu_input2)
     );
 
     // ========== ALU ==========
@@ -125,17 +134,64 @@ module riscv_processor (
     ) data_mem (
         .clk(clk),
         .we(MemWrite),
-        .addr(alu_result[11:2]),        // Word-aligned access
+        .addr(alu_result[11:0]),        // Word-aligned access
         .write_data(reg_read_data2),    // Data from rs2
         .read_data(mem_read_data)
     );
 
+    logic [7:0] Byte;
+    logic [15:0] halfword;
+    logic [32:0] word;
+
+    demux demux_inst(
+        .in(mem_read_data),
+        .sel(MemReadSize),
+        .Byte(Byte),
+        .halfword(halfword),
+        .word(word)
+    );
+
+    logic [31:0] byte_extended;
+    extender #(.INPUT_WIDTH(8)) 
+    byte_extender (
+        .in(Byte),
+        .sign(MemReadSigned),
+        .out(byte_extended)
+    );
+
+    logic [31:0] halfword_extended;
+    extender #(.INPUT_WIDTH(16)) 
+    halfword_extender (
+        .in(halfword),
+        .sign(MemReadSigned),
+        .out(halfword_extended)
+    );
+
+    logic [31:0] mux_inputs4 [3]; 
+    logic [31:0] mem_to_reg; 
+    assign mux_inputs4[0] = byte_extended;
+    assign mux_inputs4[1] = halfword_extended;
+    assign mux_inputs4[2] = word;
+
+    // ========== extended Mux ==========
+    mux #(.NUM_INPUTS(3)) extended_mux (
+        .data_in (mux_inputs4),
+        .sel(MemReadSize),
+        .data_out(mem_to_reg)
+    );
+
+
+    logic [31:0] mux_inputs2 [2];  
+    assign mux_inputs2[0] = alu_result;
+    assign mux_inputs2[1] = mem_to_reg;
+
     // ========== Write-back Mux ==========
-    mux #(.WIDTH(32)) mem_to_reg_mux (
-        .in0(alu_result),          // ALU result
-        .in1(mem_read_data),       // Memory data
+    mux #(.NUM_INPUTS(2)) mem_to_reg_mux (
+        .data_in (mux_inputs2),
+        // .in0(alu_result),          // ALU result
+        // .in1(mem_read_data),       // Memory data
         .sel(MemtoReg),
-        .out(reg_write_data)
+        .data_out(reg_write_data)
     );
 
     // ========== Branch Control ==========
@@ -149,12 +205,17 @@ module riscv_processor (
         .sum(branch_target)
     );
 
+    logic [31:0] mux_inputs3 [2];  
+    assign mux_inputs3[0] = pc_plus_4;
+    assign mux_inputs3[1] = branch_target;
+
     // ========== PC Next Mux ==========
-    mux #(.WIDTH(32)) pc_src_mux (
-        .in0(pc_plus_4),          // PC + 4
-        .in1(branch_target),      // Branch target
+    mux #(.NUM_INPUTS(2)) pc_src_mux (
+        .data_in (mux_inputs3),
+        // .in0(pc_plus_4),          // PC + 4
+        // .in1(branch_target),      // Branch target
         .sel(pc_src),
-        .out(pc_next)
+        .data_out(pc_next)
     );
 
 endmodule

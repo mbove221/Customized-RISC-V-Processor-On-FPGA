@@ -30,7 +30,10 @@ module main_control_unit(input [6:0] opcode,
 			output alu_op_t ALUOp,
 			output logic MemWrite,
 			output logic ALUSrc,
-			output logic RegWrite);
+			output logic RegWrite,
+			output logic [1:0] MemReadSize,
+			output logic MemReadSigned	
+			);
 
 	//logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
@@ -45,6 +48,8 @@ module main_control_unit(input [6:0] opcode,
 		MemWrite = 1'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
+		MemReadSigned = 1'bx;
+		MemReadSize = 2'bx;
 
 		case(opcode)
 			//Load from memory instruction 
@@ -57,6 +62,37 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 0; //Not writing to memory
 				ALUSrc = 1; //Use 32-bit immediate
 				RegWrite = 1; //Write loaded memory data into register file
+				case(funct3)
+					//0 : LB
+					3'b000:
+					begin
+						MemReadSize = 0;
+						MemReadSigned = 1;
+					end		
+					//1 : LH
+					3'b001:
+					begin
+						MemReadSize = 1;
+						MemReadSigned = 1;
+					end	
+					//2 : LW
+					3'b010:
+					begin
+						MemReadSize = 2;
+					end	
+					//4 : LBU
+					3'b100:
+					begin
+						MemReadSize = 0;
+						MemReadSigned = 0;
+					end	
+					//5 : LHU
+					3'b101:
+					begin
+						MemReadSize = 1;
+						MemReadSigned = 0;
+					end		
+				endcase
 			end
 			//Store to memory instruction
 			7'b0100011 : 
