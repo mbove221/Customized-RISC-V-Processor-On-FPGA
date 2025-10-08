@@ -104,12 +104,34 @@ module riscv_processor (
         .imm_out(imm_extended)
     );
 
+    // ========== ALU input 1 shifter ========
+    logic [31:0] shifter_out;
+    shifter shifter_inst(
+        .in0(reg_read_data1),
+        .out(shifter_out)
+    );
+
+    logic [31:0] mux_inputs0 [2];  
+    logic [31:0] alu_input1;
+    assign mux_inputs0[0] = reg_read_data1;
+    assign mux_inputs0[1] = shifter_out;
+    //========== ALU Input 1 Mux
+    mux #(.NUM_INPUTS(2)) alu_src_mux1 (
+        .data_in(mux_inputs0),
+        .sel(MemRead),
+        .data_out(alu_input1)
+    );
+
+
+
+
+
     logic [31:0] mux_inputs [2];  
     assign mux_inputs[0] = reg_read_data2;
     assign mux_inputs[1] = imm_extended;
 
-    // ========== ALU Input Mux ==========
-    mux #(.NUM_INPUTS(2)) alu_src_mux (
+    // ========== ALU Input 2 Mux ==========
+    mux #(.NUM_INPUTS(2)) alu_src_mux2 (
         .data_in(mux_inputs),
         // .data_in[0](reg_read_data2),      // Register data
         // .data_in[1](imm_extended),        // Immediate data
@@ -119,7 +141,7 @@ module riscv_processor (
 
     // ========== ALU ==========
     alu alu_inst (
-        .alu_in1(reg_read_data1),
+        .alu_in1(alu_input1),
         .alu_in2(alu_input2),
         .alu_op_ctrl(ALUOp),
         .shamt(shamt),
@@ -134,7 +156,7 @@ module riscv_processor (
     ) data_mem (
         .clk(clk),
         .we(MemWrite),
-        .addr(alu_result[11:0]),        // Word-aligned access
+        .addr(alu_result[11:2]),        // Word-aligned access
         .write_data(reg_read_data2),    // Data from rs2
         .read_data(mem_read_data)
     );
@@ -143,18 +165,25 @@ module riscv_processor (
     logic [15:0] halfword;
     logic [32:0] word;
 
-    demux demux_inst(
-        .in(mem_read_data),
-        .sel(MemReadSize),
-        .Byte(Byte),
-        .halfword(halfword),
-        .word(word)
+    // demux demux_inst(
+    //     .in(mem_read_data),
+    //     .sel(MemReadSize),
+    //     .Byte(Byte),
+    //     .halfword(halfword),
+    //     .word(word)
+    // );
+
+    data_indexer data_indexer_inst (
+        .MemReadSize(MemReadSize),
+        .offset(alu_result[1:0]),
+        .mem_read_data(mem_read_data),
+        .indexed_data(halfword)
     );
 
     logic [31:0] byte_extended;
     extender #(.INPUT_WIDTH(8)) 
     byte_extender (
-        .in(Byte),
+        .in(halfword[7:0]),
         .sign(MemReadSigned),
         .out(byte_extended)
     );
@@ -171,7 +200,7 @@ module riscv_processor (
     logic [31:0] mem_to_reg; 
     assign mux_inputs4[0] = byte_extended;
     assign mux_inputs4[1] = halfword_extended;
-    assign mux_inputs4[2] = word;
+    assign mux_inputs4[2] = mem_read_data;
 
     // ========== extended Mux ==========
     mux #(.NUM_INPUTS(3)) extended_mux (
