@@ -4,7 +4,7 @@ module data_memory #(
     DATA_WIDTH = 32
 )(
     input clk, 
-    input we,
+    input [3:0] we,
     //input re, //Will need when we have pipelined processor
     input [ADDR_WIDTH-1 : 0] addr,
     input [DATA_WIDTH-1 : 0] write_data,
@@ -21,9 +21,14 @@ module data_memory #(
     end
 
     always @(posedge clk) begin
-        if(we) begin
-            ram[addr] <= write_data;
-        end
+        if(we[0] ) 
+            ram[addr][7:0] <= write_data[7:0];
+        if(we[1]) 
+            ram[addr][15:8] <= write_data[15:8];
+        if(we[2]) 
+            ram[addr][23:16] <= write_data[23:16];
+        if(we[3]) 
+            ram[addr][31:24] <= write_data[31:24];
     end
 
     assign read_data = ram[addr];

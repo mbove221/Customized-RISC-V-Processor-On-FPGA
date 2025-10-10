@@ -14,7 +14,7 @@ import alu_op_pkg::*;
 * 01: SUB (for branches)
 * 10: Use funct3/funct7 (R-type and I-type)
 * 11: Not defined yet
-* @output MemWrite - 1-bit control signal for writing to memory (I believe it is negative
+* @output MemWrite - 4-bit control signal for writing to memory (I believe it is negative
 * edge triggered, but need verification from Milder)
 * @output ALUSrc - 1-bit control signal to read register from the register
 * file or extended immediate
@@ -28,11 +28,12 @@ module main_control_unit(input [6:0] opcode,
 			output logic MemRead,
 			output logic MemtoReg,
 			output alu_op_t ALUOp,
-			output logic MemWrite,
+			output logic [3:0] MemWrite,
 			output logic ALUSrc,
 			output logic RegWrite,
 			output logic [1:0] MemReadSize,
-			output logic MemReadSigned	
+			output logic MemReadSigned,
+			output logic SelStoreImm	
 			);
 
 	//logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
@@ -45,11 +46,12 @@ module main_control_unit(input [6:0] opcode,
 		//1: SUB (for branches, sub, etc.)
 		//...other types
 		ALUOp = alu_op_t'(4'hx); //Default to unknown
-		MemWrite = 1'bx;
+		MemWrite = 4'bx;
 		ALUSrc = 1'bx;
 		RegWrite = 1'bx;
 		MemReadSigned = 1'bx;
 		MemReadSize = 2'bx;
+		SelStoreImm = 1'bx;
 
 		case(opcode)
 			//Load from memory instruction 
@@ -59,9 +61,10 @@ module main_control_unit(input [6:0] opcode,
 				MemRead = 1; //We want to read from memory
 				MemtoReg = 1; //Load value from memory to register
 				ALUOp = ADD; //Add ALU function
-				MemWrite = 0; //Not writing to memory
+				MemWrite = 4'b0; //Not writing to memory
 				ALUSrc = 1; //Use 32-bit immediate
 				RegWrite = 1; //Write loaded memory data into register file
+				SelStoreImm = 0;
 				case(funct3)
 					//0 : LB
 					3'b000:
@@ -101,9 +104,28 @@ module main_control_unit(input [6:0] opcode,
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't write to register
 				ALUOp = ADD; //Add ALU function
-				MemWrite = 1; //Write to memory
+				MemWrite = 4'b1; //Write to memory
 				ALUSrc = 1; //Use 32-bit immediate to add to base address
 				RegWrite = 0; //Don't write anything to register file
+				SelStoreImm = 1;
+				case(funct3)
+					//0 : SB
+					3'b000:
+					begin
+						MemWrite = 4'b0001;
+					end		
+					//1 : SH
+					3'b001:
+					begin
+						MemWrite = 4'b0011;
+					end	
+					//2 : SW
+					3'b010:
+					begin
+						MemWrite = 4'b1111;
+					end	
+					
+				endcase
 			end
 			//Branch instruction
 			7'b1100011 : 
@@ -112,9 +134,10 @@ module main_control_unit(input [6:0] opcode,
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
 				ALUOp = SUB; //Subtract ALU function
-				MemWrite = 0; //Don't write to memory
+				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 0; //Don't use an immediate (use the values specified in the registers)
 				RegWrite = 0; //Don't write anything to register file
+				SelStoreImm = 0;
 			end
 			//R-type instructions
 			7'b0110011 : 
@@ -123,9 +146,10 @@ module main_control_unit(input [6:0] opcode,
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
 				ALUOp = ADD; //Default ALU operation
-				MemWrite = 0; //Don't write to memory
+				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 0; //Use the value specified in the register (R-type)
 				RegWrite = 1; //Write to the register file
+				SelStoreImm = 0;
 				case(funct3)
 					//0 : Add or Subtract
 					3'b000:
@@ -198,9 +222,10 @@ module main_control_unit(input [6:0] opcode,
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
 				ALUOp = ADD; //Default to ADD operation
-				MemWrite = 0; //Don't write to memory
+				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 1; //Use the value specified in the immediate (I-type)
 				RegWrite = 1; //Write to the register file
+				SelStoreImm = 0;
 				case(funct3)
 					//0 : Add
 					3'b000: ALUOp = ADD; //Add ALU Function

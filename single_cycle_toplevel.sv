@@ -13,8 +13,9 @@ module riscv_processor (
     logic alu_zero;
     
     // Control signals
-    logic Branch, MemRead, MemtoReg, MemWrite, ALUSrc, RegWrite;
+    logic Branch, MemRead, MemtoReg, ALUSrc, RegWrite;
     logic [1:0] MemReadSize;
+    logic [3:0] MemWrite;
     logic MemReadSigned;
     alu_op_pkg::alu_op_t ALUOp;
     
@@ -79,7 +80,8 @@ module riscv_processor (
         .ALUSrc(ALUSrc),
         .RegWrite(RegWrite),
         .MemReadSigned(MemReadSigned),
-        .MemReadSize(MemReadSize)
+        .MemReadSize(MemReadSize),
+        .SelStoreImm(SelStoreImm)
     );
 
     // ========== Register File ==========
@@ -98,9 +100,24 @@ module riscv_processor (
         .rdata2(reg_read_data2)
     );
 
+    logic [11:0] store_imm;
+    logic [11:0] imm;
+    logic [31:0] store_mux_inputs [2];  
+
+    assign store_imm = {instruction[31:25], instruction[11:7]};
+    assign store_mux_inputs[0] = imm_12bit;
+    assign store_mux_inputs[1] = store_imm;
+    
+    //========== store_imm Mux
+    mux #(.NUM_INPUTS(2)) store_imm_mux (
+        .data_in(store_mux_inputs),
+        .sel(SelStoreImm), 
+        .data_out(imm)
+    );
+    
     // ========== Sign Extension ==========
     sign_extension sign_ext (
-        .imm_in(imm_12bit),
+        .imm_in(imm),
         .imm_out(imm_extended)
     );
 
@@ -113,18 +130,21 @@ module riscv_processor (
 
     logic [31:0] mux_inputs0 [2];  
     logic [31:0] alu_input1;
+
+    logic MemReadOrMemWrite;
+
     assign mux_inputs0[0] = reg_read_data1;
     assign mux_inputs0[1] = shifter_out;
+
+    assign MemReadOrMemWrite = MemRead | MemWrite;
     //========== ALU Input 1 Mux
     mux #(.NUM_INPUTS(2)) alu_src_mux1 (
         .data_in(mux_inputs0),
-        .sel(MemRead),
+        .sel(MemReadOrMemWrite),
         .data_out(alu_input1)
     );
 
-
-
-
+    
 
     logic [31:0] mux_inputs [2];  
     assign mux_inputs[0] = reg_read_data2;
@@ -139,6 +159,8 @@ module riscv_processor (
         .data_out(alu_input2)
     );
 
+    
+
     // ========== ALU ==========
     alu alu_inst (
         .alu_in1(alu_input1),
@@ -149,15 +171,35 @@ module riscv_processor (
         .zero(alu_zero)
     );
 
+
+    // ========== Shifter for data memory store ======
+
+    logic [3:0] MemStoreSize;
+    write_control_shifter 
+    write_control_shifter_inst (
+                                .alu_result(alu_result[1:0]),
+                                .MemWrite(MemWrite),
+                                .MemStoreSize(MemStoreSize)
+                                );
+
+
+    logic [31:0] mem_write_data_out;
+    write_data_shifter 
+    write_data_shifter_inst(
+                            .alu_result(alu_result[1:0]),
+                            .mem_write_data_in(reg_read_data2),
+                            .mem_write_data_out(mem_write_data_out)
+                            );
+
     // ========== Data Memory ==========
     data_memory #(
         .ADDR_WIDTH(10),  // 1024 words of data memory
         .DATA_WIDTH(32)
     ) data_mem (
         .clk(clk),
-        .we(MemWrite),
+        .we(MemStoreSize),
         .addr(alu_result[11:2]),        // Word-aligned access
-        .write_data(reg_read_data2),    // Data from rs2
+        .write_data(mem_write_data_out),    // Data from rs2 << (alu_out[1:0] * 8)
         .read_data(mem_read_data)
     );
 
