@@ -276,8 +276,8 @@ module riscv_processor (
     logic [31:0] branch_extended;
     logic [11:0] branch_imm;
 
-    //assign branch_imm = {instruction[31], instruction[7], instruction[30-25], instruction[11-8]};		   
-	assign branch_imm = {instruction[31], instruction[30-25], instruction[11-8], instruction[7]};
+    assign branch_imm = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};		   
+	//assign branch_imm = {instruction[31], instruction[30-25], instruction[11-8], instruction[7]};
     
     extender #(.INPUT_WIDTH(12)) 
         branch_imm_extender (

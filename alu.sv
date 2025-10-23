@@ -62,12 +62,12 @@ module alu(input [31:0] alu_in1,
                 //6: bltu
                 3'b110:
                 begin
-                    if (logic'(alu_in1) < logic'(alu_in2)) sel_branch = 1;
+                    if ($unsigned(alu_in1) < $unsigned(alu_in2)) sel_branch = 1;
                 end
                 //7: bgeu
                 3'b111:
                 begin
-                    if (logic'(alu_in1) >= logic'(alu_in2)) sel_branch = 1;
+                    if ($unsigned(alu_in1) >= $unsigned(alu_in2)) sel_branch = 1;
                 end
                 default: sel_branch = 0;
             endcase
