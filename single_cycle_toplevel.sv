@@ -28,6 +28,8 @@ module riscv_processor (
     logic [4:0] shamt;
     
     // Branch control
+    logic [2:0] BranchType;
+    logic BranchSigned;
     logic pc_src;
 
     // ========== Program Counter ==========
@@ -73,6 +75,8 @@ module riscv_processor (
         .funct7(funct7),
         .funct3(funct3),
         .Branch(Branch),
+        .BranchType(BranchType),
+        .BranchSigned(BranchSigned),
         .MemRead(MemRead),
         .MemtoReg(MemtoReg),
         .ALUOp(ALUOp),
@@ -81,7 +85,7 @@ module riscv_processor (
         .RegWrite(RegWrite),
         .MemReadSigned(MemReadSigned),
         .MemReadSize(MemReadSize),
-        .SelStoreImm(SelStoreImm)
+        .Sel_imm(Sel_imm)
     );
 
     // ========== Register File ==========
@@ -111,7 +115,7 @@ module riscv_processor (
     //========== store_imm Mux
     mux #(.NUM_INPUTS(2)) store_imm_mux (
         .data_in(store_mux_inputs),
-        .sel(SelStoreImm), 
+        .sel(Sel_imm), 
         .data_out(imm)
     );
     
@@ -167,8 +171,10 @@ module riscv_processor (
         .alu_in2(alu_input2),
         .alu_op_ctrl(ALUOp),
         .shamt(shamt),
+        .branch(Branch),
+        .branch_type(BranchType),
         .alu_out(alu_result),
-        .zero(alu_zero)
+        .sel_branch(pc_src)
     );
 
 
@@ -266,13 +272,24 @@ module riscv_processor (
     );
 
     // ========== Branch Control ==========
-    assign pc_src = Branch & alu_zero;  // Branch taken if Branch=1 and ALU result is zero
+    logic [31:0] branch_target;
+    logic [31:0] branch_extended;
+    logic [11:0] branch_imm;
+
+    assign branch_imm = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};		   
+	//assign branch_imm = {instruction[31], instruction[30-25], instruction[11-8], instruction[7]};
+    
+    extender #(.INPUT_WIDTH(12)) 
+        branch_imm_extender (
+            .in(branch_imm),
+            .sign(BranchSigned),
+            .out(branch_extended)
+        );
 
     // Branch target address calculation
-    logic [31:0] branch_target;
-    adder #(.WIDTH(32)) branch_adder (
+    adder #(.WIDTH(32)) branch_adder (  //here, we trust the user doesnt give us a value that is beyond the range of PC.
         .in0(pc_current),
-        .in1(32'hDEAD), //.in1(imm_extended<<1),        
+        .in1(branch_extended<<1),      
         .sum(branch_target)
     );
 
@@ -283,8 +300,6 @@ module riscv_processor (
     // ========== PC Next Mux ==========
     mux #(.NUM_INPUTS(2)) pc_src_mux (
         .data_in (mux_inputs3),
-        // .in0(pc_plus_4),          // PC + 4
-        // .in1(branch_target),      // Branch target
         .sel(pc_src),
         .data_out(pc_next)
     );

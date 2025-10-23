@@ -13,11 +13,15 @@ module alu(input [31:0] alu_in1,
 	input [31:0] alu_in2,
 	input  alu_op_pkg::alu_op_t alu_op_ctrl,   // use enum type	
 	input [4:0] shamt,
+    input branch,
+    input [2:0] branch_type,
 	output logic[31:0] alu_out,
-	output logic zero
+	output logic sel_branch
 	);
 
-	always_comb begin
+	always_comb begin	 
+		sel_branch = 0; //default value to prevent inferred latch
+		
         unique case (alu_op_ctrl)	//unique case will give us a warning if mulitple cases could match.
             alu_op_pkg::ADD: alu_out = alu_in1 + alu_in2;                       // ADD
             alu_op_pkg::SUB: alu_out = alu_in1 - alu_in2;                       // SUB
@@ -32,9 +36,42 @@ module alu(input [31:0] alu_in1,
             alu_op_pkg::SLTU: alu_out = (alu_in1 < alu_in2) ? 32'd1 : 32'd0;     // SLTU (unsigned compare)
             default: alu_out = 32'd0; //to prevent inferred latches
         endcase
+    
+        if (branch) begin
+            case(branch_type)
+                //0: beq
+                3'b000:
+                begin
+                    if (alu_in1 == alu_in2) sel_branch = 1;
+                end
+                //1: bne
+                3'b001:
+                begin
+                    if (alu_in1 != alu_in2) sel_branch = 1;
+                end
+                //4: blt
+                3'b100:
+                begin
+                    if (alu_in1 < alu_in2) sel_branch = 1;
+                end
+                //5: bge
+                3'b101:
+                begin
+                    if (alu_in1 >= alu_in2) sel_branch = 1;
+                end
+                //6: bltu
+                3'b110:
+                begin
+                    if ($unsigned(alu_in1) < $unsigned(alu_in2)) sel_branch = 1;
+                end
+                //7: bgeu
+                3'b111:
+                begin
+                    if ($unsigned(alu_in1) >= $unsigned(alu_in2)) sel_branch = 1;
+                end
+                default: sel_branch = 0;
+            endcase
+        end
     end
-
-    // Zero flag, idk when we need this but we can assign it to a respective case statement when we the time comes.
-    assign zero = (alu_out == 32'd0);
 
 endmodule

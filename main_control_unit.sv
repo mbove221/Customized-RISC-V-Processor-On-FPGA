@@ -25,6 +25,8 @@ module main_control_unit(input [6:0] opcode,
 			input [6:0] funct7,
 			input [2:0] funct3,
 			output logic Branch,
+			output logic [2:0] BranchType,
+			output logic BranchSigned,
 			output logic MemRead,
 			output logic MemtoReg,
 			output alu_op_t ALUOp,
@@ -33,12 +35,14 @@ module main_control_unit(input [6:0] opcode,
 			output logic RegWrite,
 			output logic [1:0] MemReadSize,
 			output logic MemReadSigned,
-			output logic SelStoreImm	
+			output logic Sel_imm	
 			);
 
 	//logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
 		Branch = 1'bx;
+		BranchType = 3'bx;
+		BranchSigned = 1'bx;
 		MemRead = 1'bx;
 		MemtoReg = 1'bx;
 		//Note: ALUOp have following values:
@@ -51,7 +55,7 @@ module main_control_unit(input [6:0] opcode,
 		RegWrite = 1'bx;
 		MemReadSigned = 1'bx;
 		MemReadSize = 2'bx;
-		SelStoreImm = 1'bx;
+		Sel_imm = 1'bx;
 
 		case(opcode)
 			//Load from memory instruction 
@@ -64,7 +68,7 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 4'b0; //Not writing to memory
 				ALUSrc = 1; //Use 32-bit immediate
 				RegWrite = 1; //Write loaded memory data into register file
-				SelStoreImm = 0;
+				Sel_imm = 0;
 				case(funct3)
 					//0 : LB
 					3'b000:
@@ -107,7 +111,7 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 4'b1; //Write to memory
 				ALUSrc = 1; //Use 32-bit immediate to add to base address
 				RegWrite = 0; //Don't write anything to register file
-				SelStoreImm = 1;
+				Sel_imm = 1; //select the store immediate
 				case(funct3)
 					//0 : SB
 					3'b000:
@@ -137,7 +141,45 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 0; //Don't use an immediate (use the values specified in the registers)
 				RegWrite = 0; //Don't write anything to register file
-				SelStoreImm = 0;
+				Sel_imm = 0;
+				case(funct3)
+					//0: beq
+					3'b000:
+					begin
+						BranchType = 0;
+						BranchSigned = 1;
+					end
+					//1: bne
+					3'b001:
+					begin
+						BranchType = 1;
+						BranchSigned = 1;
+					end
+					//4: blt
+					3'b100:
+					begin
+						BranchType = 4;
+						BranchSigned = 1;
+					end
+					//5: bge
+					3'b101:
+					begin
+						BranchType = 5;
+						BranchSigned = 1;
+					end
+					//6: bltu
+					3'b110:
+					begin
+						BranchType = 6;
+						BranchSigned = 0;
+					end
+					//7: bgeu
+					3'b111:
+					begin
+						BranchType = 7;
+						BranchSigned = 0;
+					end
+				endcase
 			end
 			//R-type instructions
 			7'b0110011 : 
@@ -149,7 +191,7 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 0; //Use the value specified in the register (R-type)
 				RegWrite = 1; //Write to the register file
-				SelStoreImm = 0;
+				Sel_imm = 0;
 				case(funct3)
 					//0 : Add or Subtract
 					3'b000:
@@ -225,7 +267,7 @@ module main_control_unit(input [6:0] opcode,
 				MemWrite = 4'b0; //Don't write to memory
 				ALUSrc = 1; //Use the value specified in the immediate (I-type)
 				RegWrite = 1; //Write to the register file
-				SelStoreImm = 0;
+				Sel_imm = 0;
 				case(funct3)
 					//0 : Add
 					3'b000: ALUOp = ADD; //Add ALU Function
