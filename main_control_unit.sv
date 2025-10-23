@@ -144,37 +144,37 @@ module main_control_unit(input [6:0] opcode,
 				Sel_imm = 0;
 				case(funct3)
 					//0: beq
-					3'b000
+					3'b000:
 					begin
 						BranchType = 0;
 						BranchSigned = 1;
 					end
 					//1: bne
-					3'b001
+					3'b001:
 					begin
 						BranchType = 1;
 						BranchSigned = 1;
 					end
 					//4: blt
-					3'b100
+					3'b100:
 					begin
 						BranchType = 4;
 						BranchSigned = 1;
 					end
 					//5: bge
-					3'b101
+					3'b101:
 					begin
 						BranchType = 5;
 						BranchSigned = 1;
 					end
 					//6: bltu
-					3'b110
+					3'b110:
 					begin
 						BranchType = 6;
 						BranchSigned = 0;
 					end
 					//7: bgeu
-					3'b111
+					3'b111:
 					begin
 						BranchType = 7;
 						BranchSigned = 0;

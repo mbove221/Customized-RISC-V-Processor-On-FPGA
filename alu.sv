@@ -19,7 +19,9 @@ module alu(input [31:0] alu_in1,
 	output logic sel_branch
 	);
 
-	always_comb begin
+	always_comb begin	 
+		sel_branch = 0; //default value to prevent inferred latch
+		
         unique case (alu_op_ctrl)	//unique case will give us a warning if mulitple cases could match.
             alu_op_pkg::ADD: alu_out = alu_in1 + alu_in2;                       // ADD
             alu_op_pkg::SUB: alu_out = alu_in1 - alu_in2;                       // SUB
@@ -38,34 +40,34 @@ module alu(input [31:0] alu_in1,
         if (branch) begin
             case(branch_type)
                 //0: beq
-                3'b000
+                3'b000:
                 begin
                     if (alu_in1 == alu_in2) sel_branch = 1;
                 end
                 //1: bne
-                3'b001
+                3'b001:
                 begin
                     if (alu_in1 != alu_in2) sel_branch = 1;
                 end
                 //4: blt
-                3'b100
+                3'b100:
                 begin
                     if (alu_in1 < alu_in2) sel_branch = 1;
                 end
                 //5: bge
-                3'b101
+                3'b101:
                 begin
                     if (alu_in1 >= alu_in2) sel_branch = 1;
                 end
                 //6: bltu
-                3'b110
+                3'b110:
                 begin
-                    if (unsigned(alu_in1) < unsigned(alu_in2)) sel_branch = 1;
+                    if (logic'(alu_in1) < logic'(alu_in2)) sel_branch = 1;
                 end
                 //7: bgeu
-                3'b111
+                3'b111:
                 begin
-                    if (unsigned(alu_in1) >= unsigned(alu_in2)) sel_branch = 1;
+                    if (logic'(alu_in1) >= logic'(alu_in2)) sel_branch = 1;
                 end
                 default: sel_branch = 0;
             endcase
