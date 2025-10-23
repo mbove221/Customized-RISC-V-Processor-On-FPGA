@@ -20,6 +20,7 @@ module reg_file_tb;
     .W(W)
   ) dut (
     .clk(clk),
+    .reset_n(reset_n),
     .wen(wen),
     .waddr(waddr),
     .wdata(wdata),
