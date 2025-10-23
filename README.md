@@ -21,4 +21,4 @@ It includes the datapath, control logic, memory modules, and testbenches for ver
 - reg_file.sv
 - single_cycle_toplevel.sv
 - single_cycle_tb.sv
--- instructions.txt
+   instructions.txt
