@@ -17,6 +17,11 @@ module riscv_processor (
     logic [1:0] MemReadSize;
     logic [3:0] MemWrite;
     logic MemReadSigned;
+    logic Sel_imm;
+    logic Jal;
+	logic JalR;
+	logic AuiPc;
+	logic Lui;
     alu_op_pkg::alu_op_t ALUOp;
     
     // Instruction fields
@@ -66,8 +71,8 @@ module riscv_processor (
     assign rs1 = instruction[19:15];
     assign rs2 = instruction[24:20];
     assign funct7 = instruction[31:25];
-    assign imm_12bit = instruction[31:20];  // I-type immediate
-    assign shamt = instruction[24:20];      // Shift amount for shift operations is rs2
+    assign imm_12bit = instruction[31:20]; // I-type immediate
+    assign shamt = (Lui == 1) ? 12 : instruction[24:20]; // Shift amount for shift operations is rs2
     
     // ========== Control Unit ==========
     main_control_unit control_unit (
@@ -85,7 +90,11 @@ module riscv_processor (
         .RegWrite(RegWrite),
         .MemReadSigned(MemReadSigned),
         .MemReadSize(MemReadSize),
-        .Sel_imm(Sel_imm)
+        .Sel_imm(Sel_imm),
+        .Jal(Jal),
+        .JalR(JalR),
+        .AuiPc(AuiPc),
+        .Lui(Lui)
     );
 
     // ========== Register File ==========
@@ -174,7 +183,7 @@ module riscv_processor (
         .branch(Branch),
         .branch_type(BranchType),
         .alu_out(alu_result),
-        .sel_branch(pc_src)
+        .pc_src(pc_src)
     );
 
 
@@ -293,15 +302,44 @@ module riscv_processor (
         .sum(branch_target)
     );
 
-    logic [31:0] mux_inputs3 [2];  
-    assign mux_inputs3[0] = pc_plus_4;
+
+    logic [31:0] branch_mux_inputs [2];  
+    logic [31:0] not_jal_imm;
+    assign branch_mux_inputs[0] = pc_plus_4;
     assign mux_inputs3[1] = branch_target;
 
-    // ========== PC Next Mux ==========
-    mux #(.NUM_INPUTS(2)) pc_src_mux (
-        .data_in (mux_inputs3),
+    // ========== Branch Mux ==========
+    mux #(.NUM_INPUTS(2)) branch_mux (
+        .data_in (branch_mux_inputs),
         .sel(pc_src),
+        .data_out(not_jal_imm)
+    );
+    
+    logic [31:0] jalr_mux_inputs [2];
+    logic [31:0] jalr_mux_out;
+    //jal instruction, encoded in offset of 2 bytes
+    assign jalr_mux_inputs[0] = {{11{instruction[31]}}, instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0} + pc_current;
+    //jalr instruction
+    assign jalr_mux_inputs[1] = alu_result & ~32'b1; //ratified specs tells us to set least significant bit of addition to 0
+
+    // ========== JALR Mux ==========
+    mux #(.NUM_INPUTS(2)) jalr_mux (
+        .data_in (jalr_mux_inputs),
+        .sel(JalR),
+        .data_out(jalr_mux_out)
+    );
+
+    logic [31:0] jal_mux_inputs [2];
+
+    assign jal_mux_inputs[0] = not_jal_imm;
+    assign jal_mux_inputs[1] = jalr_mux_out;
+
+    // ========== JAL/PC Next Mux ==========
+    mux #(.NUM_INPUTS(2)) jalr_mux (
+        .data_in (jal_mux_inputs),
+        .sel(Jal),
         .data_out(pc_next)
     );
+
 
 endmodule
