@@ -367,10 +367,10 @@ module main_control_unit(input [6:0] opcode,
 				ALUSrc = 1; //Use the value specified in the immediate (I-type)
 				RegWrite = 1; //Write to the register file
 				Sel_imm = 0;
-				Jal = 1;
-				JalR = 1;
+				Jal = 0;
+				JalR = 0;
 				AuiPc = 0;
-				Lui = 0;
+				Lui = 1;
 			end
 
 		endcase

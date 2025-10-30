@@ -72,7 +72,7 @@ module riscv_processor (
     assign rs2 = instruction[24:20];
     assign funct7 = instruction[31:25];
     assign imm_12bit = instruction[31:20]; // I-type immediate
-    assign shamt = (Lui == 1) ? 12 : instruction[24:20]; // Shift amount for shift operations is rs2
+    assign shamt = instruction[24:20]; // Shift amount for shift operations is rs2
     
     // ========== Control Unit ==========
     main_control_unit control_unit (
@@ -172,8 +172,6 @@ module riscv_processor (
         .data_out(alu_input2)
     );
 
-    
-
     // ========== ALU ==========
     alu alu_inst (
         .alu_in1(alu_input1),
@@ -267,10 +265,49 @@ module riscv_processor (
     );
 
 
-    logic [31:0] mux_inputs2 [2];  
-    assign mux_inputs2[0] = alu_result;
-    assign mux_inputs2[1] = mem_to_reg;
+    logic [31:0] jal_rd_mux_inputs [2];
+    logic [31:0] jal_rd_mux_out;
 
+    assign jal_rd_mux_inputs[0] = alu_result;
+    assign jal_rd_mux_inputs[1] = pc_plus_4;
+
+    // Mux to output either pc_plus_4 or alu_result depending on if we're using a jal instr. or not
+    mux #(.NUM_INPUTS(2)) jal_rd_mux (
+        .data_in(jal_rd_mux_inputs),
+        .sel(Jal),
+        .data_out(jal_rd_mux_out)
+    );
+
+    logic [31:0] auipc_rd_mux_inputs [2];
+    logic [31:0] auipc_rd_mux_out;
+
+    assign auipc_rd_mux_inputs[0] = jal_rd_mux_out;
+    assign auipc_rd_mux_inputs[1] = pc_current + alu_result;
+
+    // Mux to output either auipc, lui, or alu data
+    mux #(.NUM_INPUTS(2)) auipc_rd_mux (
+        .data_in(auipc_rd_mux_inputs),
+        .sel(AuiPc),
+        .data_out(auipc_rd_mux_out)
+    );
+
+    logic [31:0] lui_rd_mux_inputs [2];
+    logic [31:0] lui_rd_mux_out;
+
+    assign lui_rd_mux_inputs[0] = auipc_rd_mux_out;
+    assign lui_rd_mux_inputs[1] = {instruction[31:12], {12{1'b0}}};
+
+    // Mux to output either jal data (or alu data) or PC + (imm << 12) based on AuiPc
+    mux #(.NUM_INPUTS(2)) lui_rd_mux (
+        .data_in(lui_rd_mux_inputs),
+        .sel(Lui),
+        .data_out(lui_rd_mux_out)
+    );
+
+    logic [31:0] mux_inputs2 [2];  
+    assign mux_inputs2[0] = lui_rd_mux_out;
+    assign mux_inputs2[1] = mem_to_reg;
+    
     // ========== Write-back Mux ==========
     mux #(.NUM_INPUTS(2)) mem_to_reg_mux (
         .data_in (mux_inputs2),
@@ -301,7 +338,6 @@ module riscv_processor (
         .in1(branch_extended<<1),      
         .sum(branch_target)
     );
-
 
     logic [31:0] branch_mux_inputs [2];  
     logic [31:0] not_jal_imm;
