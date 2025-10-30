@@ -342,7 +342,7 @@ module riscv_processor (
     logic [31:0] branch_mux_inputs [2];  
     logic [31:0] not_jal_imm;
     assign branch_mux_inputs[0] = pc_plus_4;
-    assign mux_inputs3[1] = branch_target;
+    assign branch_mux_inputs[1] = branch_target;
 
     // ========== Branch Mux ==========
     mux #(.NUM_INPUTS(2)) branch_mux (
@@ -371,7 +371,7 @@ module riscv_processor (
     assign jal_mux_inputs[1] = jalr_mux_out;
 
     // ========== JAL/PC Next Mux ==========
-    mux #(.NUM_INPUTS(2)) jalr_mux (
+    mux #(.NUM_INPUTS(2)) jal_mux (
         .data_in (jal_mux_inputs),
         .sel(Jal),
         .data_out(pc_next)
