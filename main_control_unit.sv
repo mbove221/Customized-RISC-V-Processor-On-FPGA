@@ -358,7 +358,7 @@ module main_control_unit(input [6:0] opcode,
 			end
 
 			//load upper immediate (lui)
-			7'b1100111 : begin
+			7'b0110111 : begin
 				Branch = 0;
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
@@ -370,7 +370,22 @@ module main_control_unit(input [6:0] opcode,
 				Jal = 0;
 				JalR = 0;
 				AuiPc = 0;
-				Lui = 1;
+				Lui = 1;   
+			end	
+				//AUIPC
+			7'b0010111 : begin
+				Branch = 0;
+				MemRead = 0; //Don't read from memory
+				MemtoReg = 0; //Don't consider writing from memory
+				ALUOp = ADD; //Default to ADD operation
+				MemWrite = 4'b0; //Don't write to memory
+				ALUSrc = 1; //Use the value specified in the immediate (I-type)
+				RegWrite = 1; //Write to the register file
+				Sel_imm = 0;
+				Jal = 0;
+				JalR = 0;
+				AuiPc = 1;	
+				Lui = 0;
 			end
 
 		endcase

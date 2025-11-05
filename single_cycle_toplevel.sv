@@ -282,7 +282,7 @@ module riscv_processor (
     logic [31:0] auipc_rd_mux_out;
 
     assign auipc_rd_mux_inputs[0] = jal_rd_mux_out;
-    assign auipc_rd_mux_inputs[1] = pc_current + alu_result;
+    assign auipc_rd_mux_inputs[1] = pc_current + {instruction[31:12], {12{1'b0}}};
 
     // Mux to output either auipc, lui, or alu data
     mux #(.NUM_INPUTS(2)) auipc_rd_mux (
