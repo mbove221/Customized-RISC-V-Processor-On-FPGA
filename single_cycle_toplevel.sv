@@ -1,6 +1,13 @@
 module riscv_processor (
+    localparam ADDR_WIDTH = 10,
+    localparam DATA_WIDTH = 32
+)(
     input logic clk,
-    input logic reset_n
+    input logic reset_n,
+    input [ADDR_WIDTH-1 : 0] instr_mem_addr_FPGA,
+    input [DATA_WIDTH-1 : 0] write_data_IM_FPGA,
+    output logic [DATA_WIDTH-1 : 0] read_data_IM_FPGA,
+    output logic processor_done
 );
 
     // Internal signals
@@ -37,6 +44,8 @@ module riscv_processor (
     logic BranchSigned;
     logic pc_src;
 
+
+
     // ========== Program Counter ==========
     program_counter pc_inst (
         .clk(clk),
@@ -61,8 +70,14 @@ module riscv_processor (
         .we(1'b0),                      // not writing to instruction memory for now
         .addr(pc_current[11:2]),        // mem addr is only 10 bits & Word-aligned access (divide by 4), i.e., the last two bits are always zero so we discard them
         .write_data(32'b0),             // Not used
-        .read_data(instruction)
+        .reset_n(reset_n),
+        .read_data(instruction),
+        .addr_FPGA(instr_mem_addr_FPGA),
+        .write_data_FPGA(write_data_IM_FPGA),
+        .read_data_FPGA(read_data_IM_FPGA)
     );
+
+
 
     // ========== Instruction Decoding ==========
     assign opcode = instruction[6:0];
@@ -96,6 +111,8 @@ module riscv_processor (
         .AuiPc(AuiPc),
         .Lui(Lui)
     );
+
+    assign processor_done = (opcode == 7'b0000000) ? 1 : 0;
 
     // ========== Register File ==========
     regfile_ff #(
