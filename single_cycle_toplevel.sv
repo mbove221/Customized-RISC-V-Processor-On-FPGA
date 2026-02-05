@@ -129,7 +129,7 @@ module riscv_processor #(
         .wdata(reg_write_data),
         .raddr1(rs1),
         .raddr2(rs2),
-        .raddr_FPGA(rf_addr_FPGA)
+        .raddr_FPGA(rf_addr_FPGA),
         .rdata1(reg_read_data1),
         .rdata2(reg_read_data2),
         .rdata_FPGA(read_data_rf_FPGA)
