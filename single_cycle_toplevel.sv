@@ -113,16 +113,24 @@ module riscv_processor (
         .rdata2(reg_read_data2)
     );
 
+    branch_comparator branch_comparator (
+        .reg_data1(reg_read_data1),
+        .reg_data2(reg_read_data2),
+        .branch(Branch),
+        .branch_type(BranchType),
+        .pc_src(pc_src)        
+    );
+
     logic [11:0] store_imm;
     logic [11:0] imm;
-    logic [31:0] store_mux_inputs [2];  
+    logic [11:0] store_mux_inputs [2];  
 
     assign store_imm = {instruction[31:25], instruction[11:7]};
     assign store_mux_inputs[0] = imm_12bit;
     assign store_mux_inputs[1] = store_imm;
     
     //========== store_imm Mux
-    mux #(.NUM_INPUTS(2)) store_imm_mux (
+    mux #(.DATA_WIDTH(12),.NUM_INPUTS(2)) store_imm_mux (
         .data_in(store_mux_inputs),
         .sel(Sel_imm), 
         .data_out(imm)
@@ -143,9 +151,7 @@ module riscv_processor (
 
     logic [31:0] mux_inputs0 [2];  
     logic [31:0] alu_input1;
-
     logic MemReadOrMemWrite;
-
     assign mux_inputs0[0] = reg_read_data1;
     assign mux_inputs0[1] = shifter_out;
 
@@ -178,31 +184,26 @@ module riscv_processor (
         .alu_in2(alu_input2),
         .alu_op_ctrl(ALUOp),
         .shamt(shamt),
-        .branch(Branch),
-        .branch_type(BranchType),
-        .alu_out(alu_result),
-        .pc_src(pc_src)
+        .alu_out(alu_result)
     );
 
 
     // ========== Shifter for data memory store ======
 
     logic [3:0] MemStoreSize;
-    write_control_shifter 
-    write_control_shifter_inst (
-                                .alu_result(alu_result[1:0]),
-                                .MemWrite(MemWrite),
-                                .MemStoreSize(MemStoreSize)
-                                );
+    write_control_shifter write_control_shifter_inst (
+        .alu_result(alu_result[1:0]),
+        .MemWrite(MemWrite),
+        .MemStoreSize(MemStoreSize)
+    );
 
 
     logic [31:0] mem_write_data_out;
-    write_data_shifter 
-    write_data_shifter_inst(
-                            .alu_result(alu_result[1:0]),
-                            .mem_write_data_in(reg_read_data2),
-                            .mem_write_data_out(mem_write_data_out)
-                            );
+    write_data_shifter write_data_shifter_inst(
+        .alu_result(alu_result[1:0]),
+        .mem_write_data_in(reg_read_data2),
+        .mem_write_data_out(mem_write_data_out)
+    );
 
     // ========== Data Memory ==========
     data_memory #(
@@ -280,7 +281,6 @@ module riscv_processor (
 
     logic [31:0] auipc_rd_mux_inputs [2];
     logic [31:0] auipc_rd_mux_out;
-
     assign auipc_rd_mux_inputs[0] = jal_rd_mux_out;
     assign auipc_rd_mux_inputs[1] = pc_current + {instruction[31:12], {12{1'b0}}};
 
@@ -293,7 +293,6 @@ module riscv_processor (
 
     logic [31:0] lui_rd_mux_inputs [2];
     logic [31:0] lui_rd_mux_out;
-
     assign lui_rd_mux_inputs[0] = auipc_rd_mux_out;
     assign lui_rd_mux_inputs[1] = {instruction[31:12], {12{1'b0}}};
 

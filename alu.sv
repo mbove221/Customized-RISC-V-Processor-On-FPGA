@@ -13,14 +13,14 @@ module alu(input [31:0] alu_in1,
 	input [31:0] alu_in2,
 	input  alu_op_pkg::alu_op_t alu_op_ctrl,   // use enum type	
 	input [4:0] shamt,
-    input branch,
-    input [2:0] branch_type,
-	output logic[31:0] alu_out,
-	output logic pc_src
+    //input branch,                 //moved to branch.sv file
+    //input [2:0] branch_type,      //moved to branch.sv file
+	output logic[31:0] alu_out
+	//output logic pc_src           //moved to branch.sv file
 	);
 
 	always_comb begin	 
-		pc_src = 0; //default value to prevent inferred latch
+		//pc_src = 0; //default value to prevent inferred latch
 		
         unique case (alu_op_ctrl)	//unique case will give us a warning if mulitple cases could match.
             alu_op_pkg::ADD: alu_out = alu_in1 + alu_in2;                       // ADD
@@ -37,41 +37,6 @@ module alu(input [31:0] alu_in1,
             default: alu_out = 32'd0; //to prevent inferred latches
         endcase
     
-        if (branch) begin
-            case(branch_type)
-                //0: beq
-                3'b000:
-                begin
-                    if (alu_in1 == alu_in2) pc_src = 1;
-                end
-                //1: bne
-                3'b001:
-                begin
-                    if (alu_in1 != alu_in2) pc_src = 1;
-                end
-                //4: blt
-                3'b100:
-                begin
-                    if ($signed(alu_in1) < $signed(alu_in2)) pc_src = 1;
-                end
-                //5: bge
-                3'b101:
-                begin
-                    if ($signed(alu_in1) >= $signed(alu_in2)) pc_src = 1;
-                end
-                //6: bltu
-                3'b110:
-                begin
-                    if ($unsigned(alu_in1) < $unsigned(alu_in2)) pc_src = 1;
-                end
-                //7: bgeu
-                3'b111:
-                begin
-                    if ($unsigned(alu_in1) >= $unsigned(alu_in2)) pc_src = 1;
-                end
-                default: pc_src = 0;
-            endcase
-        end
     end
 
 endmodule

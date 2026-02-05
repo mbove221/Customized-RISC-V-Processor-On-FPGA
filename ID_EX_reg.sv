@@ -1,4 +1,6 @@
-module IF_ID_reg #(parameter DATA_WIDTH = 32)
+import alu_op_pkg::*;
+
+module ID_EX_reg #(parameter DATA_WIDTH = 32)
 (
     input clk,
     input rst_n,           

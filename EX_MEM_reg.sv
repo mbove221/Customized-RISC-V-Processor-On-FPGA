@@ -1,4 +1,4 @@
-module IF_ID_reg #(parameter DATA_WIDTH = 32) 
+module EX_MEM_reg #(parameter DATA_WIDTH = 32) 
 (
     input clk, 
     input rst_n,

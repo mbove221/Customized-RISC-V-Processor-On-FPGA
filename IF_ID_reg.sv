@@ -17,4 +17,4 @@ module IF_ID_reg #(parameter DATA_WIDTH =32)
     end
 
     assign instruction_out = instr_reg;
-endmodule;
+endmodule
