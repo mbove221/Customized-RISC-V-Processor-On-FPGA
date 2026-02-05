@@ -1,12 +1,15 @@
-module riscv_processor (
-    localparam ADDR_WIDTH = 10,
-    localparam DATA_WIDTH = 32
+module riscv_processor #(
+    localparam IM_ADDR_WIDTH = 10,
+    localparam DATA_WIDTH = 32,
+    localparam RF_ADDR_WIDTH = 5
 )(
     input logic clk,
     input logic reset_n,
-    input [ADDR_WIDTH-1 : 0] instr_mem_addr_FPGA,
+    input [IM_ADDR_WIDTH-1 : 0] instr_mem_addr_FPGA,
     input [DATA_WIDTH-1 : 0] write_data_IM_FPGA,
+    input [RF_ADDR_WIDTH-1:0] rf_addr_FPGA,
     output logic [DATA_WIDTH-1 : 0] read_data_IM_FPGA,
+    output logic [DATA_WIDTH-1 : 0] read_data_rf_FPGA,
     output logic processor_done
 );
 
@@ -126,8 +129,10 @@ module riscv_processor (
         .wdata(reg_write_data),
         .raddr1(rs1),
         .raddr2(rs2),
+        .raddr_FPGA(rf_addr_FPGA)
         .rdata1(reg_read_data1),
-        .rdata2(reg_read_data2)
+        .rdata2(reg_read_data2),
+        .rdata_FPGA(read_data_rf_FPGA)
     );
 
     logic [11:0] store_imm;
