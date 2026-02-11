@@ -5,11 +5,9 @@ module instruction_memory #(
 )(
     input clk, 
     input we,
-    //input re, //Will need when we have pipelined processor
-    input reset_n, //Write instructions to instruction memory during FPGA system reset
+    //input re, 
     input [ADDR_WIDTH-1 : 0] addr,
     input [ADDR_WIDTH-1 : 0] addr_FPGA,
-    input [DATA_WIDTH-1 : 0] write_data,
     input [DATA_WIDTH-1 : 0] write_data_FPGA,
     output logic [DATA_WIDTH-1 : 0] read_data,
     output logic [DATA_WIDTH-1 : 0] read_data_FPGA
@@ -23,9 +21,8 @@ module instruction_memory #(
     end 
 
     always @(posedge clk) begin
-        if(!reset_n) ram[addr_FPGA] <= write_data_FPGA;
         if(we) begin
-            ram[addr] <= write_data;
+            ram[addr_FPGA] <= write_data_FPGA;
         end
         read_data_FPGA <= ram[addr_FPGA];
     end

@@ -6,11 +6,13 @@ module program_counter(
     output logic [31:0] pc
 );
 
+
+
 always_ff @(posedge clk) begin
     if(reset_n == 1'b0) begin
         pc <= 32'b0;
     end else if(processor_done != 1'b1) begin
-        pc <= 32'b0;
+        pc <= pc_next;
     end
 
 end
