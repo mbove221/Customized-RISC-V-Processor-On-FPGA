@@ -142,6 +142,64 @@ module riscv_processor (
         .imm_out(imm_extended)
     );
 
+    IF_ID_reg #(
+        .DATA_WIDTH(32)
+    ) if_id_reg_inst (
+        .clk(clk),
+        .rst_n(rst_n),
+        .instruction(instruction_IF),
+        .instruction_out(instruction_ID)
+    );
+
+
+    ID_EX_reg #(
+        .DATA_WIDTH(32)
+    ) id_ex_reg_inst (
+        // Clock and Reset
+        .clk(clk),
+        .rst_n(rst_n),
+        
+        // Control Signals Input
+        .MemRead(MemRead_ID),
+        .MemtoReg(MemtoReg_ID),
+        .ALUOp(ALUOp_ID),
+        .MemWrite(MemWrite_ID),
+        .ALUSrc(ALUSrc_ID),
+        .RegWrite(RegWrite_ID),
+        .MemReadSigned(MemReadSigned_ID),
+        .MemReadSize(MemReadSize_ID),
+        .JAL(JAL_ID),
+        .JALR(JALR_ID),
+        .auipc(auipc_ID),
+        .lui(lui_ID),
+        .shamt(shamt_ID),
+        .reg_read_data1(reg_read_data1_ID),
+        .reg_read_data2(reg_read_data2_ID),
+        .reg_write_addr(reg_write_addr_ID),
+        .imm_extended(imm_extended_ID),
+        
+        // Control Signals Output
+        .MemRead_out(MemRead_EX),
+        .MemtoReg_out(MemtoReg_EX),
+        .ALUOp_out(ALUOp_EX),
+        .MemWrite_out(MemWrite_EX),
+        .ALUSrc_out(ALUSrc_EX),
+        .RegWrite_out(RegWrite_EX),
+        .MemReadSigned_out(MemReadSigned_EX),
+        .MemReadSize_out(MemReadSize_EX),
+        .JAL_out(JAL_EX),
+        .JALR_out(JALR_EX),
+        .auipc_out(auipc_EX),
+        .lui_out(lui_EX),
+        .shamt_out(shamt_EX),
+        .reg_read_data1_out(reg_read_data1_EX),
+        .reg_read_data2_out(reg_read_data2_EX),
+        .reg_write_addr_out(reg_write_addr_EX),
+        .imm_extended_out(imm_extended_EX)
+    );
+
+
+
     // ========== ALU input 1 shifter ========
     logic [31:0] shifter_out;
     shifter shifter_inst(
@@ -188,6 +246,42 @@ module riscv_processor (
     );
 
 
+    EX_MEM_reg #(
+        .DATA_WIDTH(32)
+    ) ex_mem_reg_inst (
+        // Clock and Reset
+        .clk(clk),
+        .rst_n(rst_n),
+        
+        // Data Path Input
+        .alu_result(alu_result_EX),
+        .reg_read_data2(reg_read_data2_EX),
+        .reg_write_addr(reg_write_addr_EX),
+        .MemtoReg(MemtoReg_EX),
+        .MemWrite(MemWrite_EX),
+        .RegWrite(RegWrite_EX),
+        .MemReadSigned(MemReadSigned_EX),
+        .MemReadSize(MemReadSize_EX),
+        .JAL(JAL_EX),
+        .auipc(auipc_EX),
+        .lui(lui_EX),
+        
+        // Control Signals Output
+        .MemtoReg_out(MemtoReg_MEM),
+        .MemWrite_out(MemWrite_MEM),
+        .RegWrite_out(RegWrite_MEM),
+        .MemReadSigned_out(MemReadSigned_MEM),
+        .MemReadSize_out(MemReadSize_MEM),
+        .JAL_out(JAL_MEM),
+        .auipc_out(auipc_MEM),
+        .lui_out(lui_MEM),
+        .alu_result_out(alu_result_MEM),
+        .reg_read_data2_out(reg_read_data2_MEM),
+        .reg_write_addr_out(reg_write_addr_MEM)
+    );
+
+
+
     // ========== Shifter for data memory store ======
 
     logic [3:0] MemStoreSize;
@@ -215,6 +309,39 @@ module riscv_processor (
         .addr(alu_result[11:2]),        // Word-aligned access
         .write_data(mem_write_data_out),    // Data from rs2 << (alu_out[1:0] * 8)
         .read_data(mem_read_data)
+    );
+
+
+    MEM_WB_reg #(
+        .DATA_WIDTH(32)
+    ) mem_wb_reg_inst (
+        // Clock and Reset
+        .clk(clk),
+        .rst_n(rst_n),
+        
+        // Data Path Input
+        .alu_result(alu_result_MEM),
+        .mem_read_data(mem_read_data_MEM),
+        .reg_write_data(reg_write_data_MEM),
+        .reg_write_addr(reg_write_addr_MEM),
+        
+        // Control Signals Input
+        .MemtoReg(MemtoReg_MEM),
+        .RegWrite(RegWrite_MEM),
+        .MemReadSigned(MemReadSigned_MEM),
+        .MemReadSize(MemReadSize_MEM),
+        
+        // Control Signals Output
+        .MemtoReg_out(MemtoReg_WB),
+        .RegWrite_out(RegWrite_WB),
+        .MemReadSigned_out(MemReadSigned_WB),
+        .MemReadSize_out(MemReadSize_WB),
+        
+        // Data Path Output
+        .alu_result_out(alu_result_WB),
+        .mem_read_data_out(mem_read_data_WB),
+        .reg_write_data_out(reg_write_data_WB),
+        .reg_write_addr_out(reg_write_addr_WB)
     );
 
     logic [7:0] Byte;
