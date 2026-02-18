@@ -2,7 +2,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
 (
     input clk, 
     input rst_n,
-    input [11:0] alu_result,
+    input [31:0] alu_result,
     input [31:0] reg_read_data2,
     input [4:0] reg_write_addr,
     input MemtoReg,
@@ -13,7 +13,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     input JAL,
     input auipc,
     input lui,
-    input [20:0] auipc_or_lui_addr,
+    input [19:0] auipc_or_lui_addr,
 
     output logic MemtoReg_out,      
     output logic [3:0] MemWrite_out,      
@@ -23,14 +23,14 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     output logic JAL_out,           
     output logic auipc_out,         
     output logic lui_out, 
-    output logic [11:0] alu_result_out,
+    output logic [31:0] alu_result_out,
     output logic [31:0] reg_read_data2_out,
     output logic [4:0] reg_write_addr_out,
-    output logic [20:0] auipc_or_lui_addr_out 
+    output logic [19:0] auipc_or_lui_addr_out 
 );
 
     // Data path registers
-    logic [11:0] alu_result_reg;
+    logic [31:0] alu_result_reg;
     logic [31:0] reg_read_data2_reg;
     logic [4:0] reg_write_addr_reg;
     
@@ -43,12 +43,12 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     logic JAL_reg;
     logic auipc_reg;
     logic lui_reg;
-    logic [20:0] auipc_or_lui_addr_reg;
+    logic [19:0] auipc_or_lui_addr_reg;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             // Reset data path registers
-            alu_result_reg <= 12'b0;
+            alu_result_reg <= 32'b0;
             reg_read_data2_reg <= 32'b0;
             reg_write_addr_reg <= 5'b0;
             
@@ -61,7 +61,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
             JAL_reg <= 1'b0;
             auipc_reg <= 1'b0;
             lui_reg <= 1'b0;
-            auipc_or_lui_addr_reg <= 20'0;
+            auipc_or_lui_addr_reg <= 20'b0;
         end
         else begin
             // Capture data path inputs

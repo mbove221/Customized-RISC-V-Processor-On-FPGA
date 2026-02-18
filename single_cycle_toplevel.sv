@@ -50,7 +50,7 @@ logic [31:0] instruction_ID;
 logic        MemRead_ID,      MemRead_EX;
 logic        MemtoReg_ID,     MemtoReg_EX;
 alu_op_pkg::alu_op_t  ALUOp_ID,        ALUOp_EX;
-logic        MemWrite_ID,     MemWrite_EX;
+logic [3:0]  MemWrite_ID,     MemWrite_EX;
 logic        ALUSrc_ID,       ALUSrc_EX;
 logic        RegWrite_ID,     RegWrite_EX;
 logic        MemReadSigned_ID, MemReadSigned_EX;
@@ -66,14 +66,14 @@ logic [31:0] reg_read_data1_ID,     reg_read_data1_EX;
 logic [31:0] reg_read_data2_ID,     reg_read_data2_EX;
 logic [4:0]  reg_write_addr_ID,     reg_write_addr_EX;
 logic [31:0] imm_extended_ID,       imm_extended_EX;
-logic [31:0] auipc_or_lui_addr_ID,  auipc_or_lui_addr_EX;
+logic [19:0] auipc_or_lui_addr_ID,  auipc_or_lui_addr_EX;
 
 // ============================================================
 // EX/MEM Stage Signals
 // ============================================================
 // Control
 logic        MemtoReg_MEM;
-logic        MemWrite_MEM;
+logic [3:0]  MemWrite_MEM;
 logic        RegWrite_MEM;
 logic        MemReadSigned_MEM;
 logic [1:0]  MemReadSize_MEM;
@@ -85,7 +85,7 @@ logic        lui_MEM;
 logic [31:0] alu_result_EX,         alu_result_MEM;
 logic [31:0] reg_read_data2_MEM;
 logic [4:0]  reg_write_addr_MEM;
-logic [31:0] auipc_or_lui_addr_MEM;
+logic [19:0] auipc_or_lui_addr_MEM;
 
 // ============================================================
 // MEM/WB Stage Signals
@@ -181,7 +181,7 @@ logic [4:0]  reg_write_addr_WB;
         .reset_n(reset_n),
         .wen(RegWrite_WB),
         .waddr(reg_write_addr_WB),
-        .wdata(reg_write_data_WB),
+        .wdata(reg_write_data),
         .raddr1(rs1),
         .raddr2(rs2),
         .rdata1(reg_read_data1_ID),
@@ -264,7 +264,7 @@ logic [4:0]  reg_write_addr_WB;
         .reg_read_data2_out(reg_read_data2_EX),
         .reg_write_addr_out(reg_write_addr_EX),
         .imm_extended_out(imm_extended_EX),
-        .auipc_or_lui_addr_out(auipc_or_lui_addr_EX),
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_EX)
     );
 
 
@@ -344,7 +344,7 @@ logic [4:0]  reg_write_addr_WB;
         .alu_result_out(alu_result_MEM),
         .reg_read_data2_out(reg_read_data2_MEM),
         .reg_write_addr_out(reg_write_addr_MEM),
-        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM),
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM)
     );
 
 
@@ -499,7 +499,7 @@ logic [4:0]  reg_write_addr_WB;
         // .in0(alu_result),          // ALU result
         // .in1(mem_read_data),       // Memory data
         .sel(MemtoReg_WB),
-        .data_out(reg_write_data_WB)
+        .data_out(reg_write_data)
     );
 
 

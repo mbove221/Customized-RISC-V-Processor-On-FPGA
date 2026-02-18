@@ -2,7 +2,7 @@ module MEM_WB_reg #(parameter DATA_WIDTH = 32)
 (
     input clk,
     input rst_n,
-    input [11:0] alu_result,
+    input [31:0] alu_result,
     input [31:0] mem_read_data,
     input [31:0] reg_write_data,
     input [4:0] reg_write_addr,
@@ -15,14 +15,14 @@ module MEM_WB_reg #(parameter DATA_WIDTH = 32)
     output logic RegWrite_out,      
     output logic MemReadSigned_out, 
     output logic [1:0] MemReadSize_out,   
-    output logic [11:0] alu_result_out,
+    output logic [31:0] alu_result_out,
     output logic [31:0] mem_read_data_out,
     output logic [31:0] reg_write_data_out,
     output logic [4:0] reg_write_addr_out 
 );
 
     // Data path registers
-    logic [11:0] alu_result_reg;
+    logic [31:0] alu_result_reg;
     logic [31:0] mem_read_data_reg;
     logic [31:0] reg_write_data_reg;
     logic [4:0] reg_write_addr_reg;
@@ -36,7 +36,7 @@ module MEM_WB_reg #(parameter DATA_WIDTH = 32)
     always_ff @(posedge clk) begin
         if (!rst_n) begin
             // Reset data path registers
-            alu_result_reg <= 12'b0;
+            alu_result_reg <= 32'b0;
             mem_read_data_reg <= 32'b0;
             reg_write_data_reg <= 32'b0;
             reg_write_addr_reg <= 5'b0;
