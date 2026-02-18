@@ -37,6 +37,71 @@ module riscv_processor (
     logic BranchSigned;
     logic pc_src;
 
+
+    // ============================================================
+// IF/ID Stage Signals
+// ============================================================
+logic [31:0] instruction_ID;
+
+// ============================================================
+// ID/EX Stage Signals
+// ============================================================
+// Control
+logic        MemRead_ID,      MemRead_EX;
+logic        MemtoReg_ID,     MemtoReg_EX;
+alu_op_pkg::alu_op_t  ALUOp_ID,        ALUOp_EX;
+logic        MemWrite_ID,     MemWrite_EX;
+logic        ALUSrc_ID,       ALUSrc_EX;
+logic        RegWrite_ID,     RegWrite_EX;
+logic        MemReadSigned_ID, MemReadSigned_EX;
+logic [1:0]  MemReadSize_ID,  MemReadSize_EX;
+logic        Jal_ID,          Jal_EX;
+logic        Jalr_ID,         Jalr_EX;
+logic        AuiPc_ID,        auipc_EX;
+logic        Lui_ID,          lui_EX;
+logic [4:0]  shamt_ID,        shamt_EX;
+
+// Data
+logic [31:0] reg_read_data1_ID,     reg_read_data1_EX;
+logic [31:0] reg_read_data2_ID,     reg_read_data2_EX;
+logic [4:0]  reg_write_addr_ID,     reg_write_addr_EX;
+logic [31:0] imm_extended_ID,       imm_extended_EX;
+logic [31:0] auipc_or_lui_addr_ID,  auipc_or_lui_addr_EX;
+
+// ============================================================
+// EX/MEM Stage Signals
+// ============================================================
+// Control
+logic        MemtoReg_MEM;
+logic        MemWrite_MEM;
+logic        RegWrite_MEM;
+logic        MemReadSigned_MEM;
+logic [1:0]  MemReadSize_MEM;
+logic        Jal_MEM;
+logic        auipc_MEM;
+logic        lui_MEM;
+
+// Data
+logic [31:0] alu_result_EX,         alu_result_MEM;
+logic [31:0] reg_read_data2_MEM;
+logic [4:0]  reg_write_addr_MEM;
+logic [31:0] auipc_or_lui_addr_MEM;
+
+// ============================================================
+// MEM/WB Stage Signals
+// ============================================================
+// Control
+logic        MemtoReg_WB;
+logic        RegWrite_WB;
+logic        MemReadSigned_WB;
+logic [1:0]  MemReadSize_WB;
+
+// Data
+logic [31:0] alu_result_WB;
+logic [31:0] mem_read_data_MEM,     mem_read_data_WB;
+logic [31:0] reg_write_data_MEM,    reg_write_data_WB;
+logic [4:0]  reg_write_addr_WB;
+
     // ========== Program Counter ==========
     program_counter pc_inst (
         .clk(clk),
@@ -64,15 +129,25 @@ module riscv_processor (
         .read_data(instruction)
     );
 
+    IF_ID_reg #(
+        .DATA_WIDTH(32)
+    ) if_id_reg_inst (
+        .clk(clk),
+        .rst_n(reset_n),
+        .instruction(instruction),
+        .instruction_out(instruction_ID)
+    );
+
     // ========== Instruction Decoding ==========
-    assign opcode = instruction[6:0];
-    assign rd = instruction[11:7];
-    assign funct3 = instruction[14:12];
-    assign rs1 = instruction[19:15];
-    assign rs2 = instruction[24:20];
-    assign funct7 = instruction[31:25];
-    assign imm_12bit = instruction[31:20]; // I-type immediate
-    assign shamt = instruction[24:20]; // Shift amount for shift operations is rs2
+    assign opcode = instruction_ID[6:0];
+    assign rd = instruction_ID[11:7];
+    assign funct3 = instruction_ID[14:12];
+    assign rs1 = instruction_ID[19:15];
+    assign rs2 = instruction_ID[24:20];
+    assign funct7 = instruction_ID[31:25];
+    assign imm_12bit = instruction_ID[31:20]; // I-type immediate
+    assign shamt_ID = instruction_ID[24:20]; // Shift amount for shift operations is rs2
+    assign auipc_or_lui_addr_ID = instruction_ID[31:12]; //the rd addr for auipc and lui instr
     
     // ========== Control Unit ==========
     main_control_unit control_unit (
@@ -82,19 +157,19 @@ module riscv_processor (
         .Branch(Branch),
         .BranchType(BranchType),
         .BranchSigned(BranchSigned),
-        .MemRead(MemRead),
-        .MemtoReg(MemtoReg),
-        .ALUOp(ALUOp),
-        .MemWrite(MemWrite),
-        .ALUSrc(ALUSrc),
-        .RegWrite(RegWrite),
-        .MemReadSigned(MemReadSigned),
-        .MemReadSize(MemReadSize),
+        .MemRead(MemRead_ID),
+        .MemtoReg(MemtoReg_ID),
+        .ALUOp(ALUOp_ID),
+        .MemWrite(MemWrite_ID),
+        .ALUSrc(ALUSrc_ID),
+        .RegWrite(RegWrite_ID),
+        .MemReadSigned(MemReadSigned_ID),
+        .MemReadSize(MemReadSize_ID),
         .Sel_imm(Sel_imm),
-        .Jal(Jal),
-        .JalR(JalR),
-        .AuiPc(AuiPc),
-        .Lui(Lui)
+        .Jal(Jal_ID),
+        .JalR(JalR_ID),
+        .AuiPc(AuiPc_ID),
+        .Lui(Lui_ID)
     );
 
     // ========== Register File ==========
@@ -104,28 +179,28 @@ module riscv_processor (
     ) reg_file (
         .clk(clk),
         .reset_n(reset_n),
-        .wen(RegWrite),
-        .waddr(rd),
-        .wdata(reg_write_data),
+        .wen(RegWrite_WB),
+        .waddr(reg_write_addr_WB),
+        .wdata(reg_write_data_WB),
         .raddr1(rs1),
         .raddr2(rs2),
-        .rdata1(reg_read_data1),
-        .rdata2(reg_read_data2)
+        .rdata1(reg_read_data1_ID),
+        .rdata2(reg_read_data2_ID)
     );
 
     branch_comparator branch_comparator (
-        .reg_data1(reg_read_data1),
-        .reg_data2(reg_read_data2),
+        .reg_data1(reg_read_data1_ID),
+        .reg_data2(reg_read_data2_ID),
         .branch(Branch),
         .branch_type(BranchType),
-        .pc_src(pc_src)        
+        .pc_src(pc_src)  //default is 0.      
     );
 
     logic [11:0] store_imm;
     logic [11:0] imm;
     logic [11:0] store_mux_inputs [2];  
 
-    assign store_imm = {instruction[31:25], instruction[11:7]};
+    assign store_imm = {instruction_ID[31:25], instruction_ID[11:7]};
     assign store_mux_inputs[0] = imm_12bit;
     assign store_mux_inputs[1] = store_imm;
     
@@ -139,17 +214,9 @@ module riscv_processor (
     // ========== Sign Extension ==========
     sign_extension sign_ext (
         .imm_in(imm),
-        .imm_out(imm_extended)
+        .imm_out(imm_extended_ID)
     );
 
-    IF_ID_reg #(
-        .DATA_WIDTH(32)
-    ) if_id_reg_inst (
-        .clk(clk),
-        .rst_n(rst_n),
-        .instruction(instruction_IF),
-        .instruction_out(instruction_ID)
-    );
 
 
     ID_EX_reg #(
@@ -157,7 +224,7 @@ module riscv_processor (
     ) id_ex_reg_inst (
         // Clock and Reset
         .clk(clk),
-        .rst_n(rst_n),
+        .rst_n(reset_n),
         
         // Control Signals Input
         .MemRead(MemRead_ID),
@@ -168,15 +235,16 @@ module riscv_processor (
         .RegWrite(RegWrite_ID),
         .MemReadSigned(MemReadSigned_ID),
         .MemReadSize(MemReadSize_ID),
-        .JAL(JAL_ID),
-        .JALR(JALR_ID),
-        .auipc(auipc_ID),
-        .lui(lui_ID),
+        .JAL(Jal_ID),
+        .JALR(Jalr_ID),
+        .auipc(AuiPc_ID),
+        .lui(Lui_ID),
         .shamt(shamt_ID),
         .reg_read_data1(reg_read_data1_ID),
         .reg_read_data2(reg_read_data2_ID),
         .reg_write_addr(reg_write_addr_ID),
         .imm_extended(imm_extended_ID),
+        .auipc_or_lui_addr(auipc_or_lui_addr_ID),
         
         // Control Signals Output
         .MemRead_out(MemRead_EX),
@@ -187,15 +255,16 @@ module riscv_processor (
         .RegWrite_out(RegWrite_EX),
         .MemReadSigned_out(MemReadSigned_EX),
         .MemReadSize_out(MemReadSize_EX),
-        .JAL_out(JAL_EX),
-        .JALR_out(JALR_EX),
+        .JAL_out(Jal_EX),
+        .JALR_out(Jalr_EX),
         .auipc_out(auipc_EX),
         .lui_out(lui_EX),
         .shamt_out(shamt_EX),
         .reg_read_data1_out(reg_read_data1_EX),
         .reg_read_data2_out(reg_read_data2_EX),
         .reg_write_addr_out(reg_write_addr_EX),
-        .imm_extended_out(imm_extended_EX)
+        .imm_extended_out(imm_extended_EX),
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_EX),
     );
 
 
@@ -203,17 +272,17 @@ module riscv_processor (
     // ========== ALU input 1 shifter ========
     logic [31:0] shifter_out;
     shifter shifter_inst(
-        .in0(reg_read_data1),
+        .in0(reg_read_data1_EX),
         .out(shifter_out)
     );
 
     logic [31:0] mux_inputs0 [2];  
     logic [31:0] alu_input1;
     logic MemReadOrMemWrite;
-    assign mux_inputs0[0] = reg_read_data1;
+    assign mux_inputs0[0] = reg_read_data1_EX;
     assign mux_inputs0[1] = shifter_out;
 
-    assign MemReadOrMemWrite = MemRead | MemWrite;
+    assign MemReadOrMemWrite = MemRead_EX | MemWrite_EX;
     //========== ALU Input 1 Mux
     mux #(.NUM_INPUTS(2)) alu_src_mux1 (
         .data_in(mux_inputs0),
@@ -224,15 +293,15 @@ module riscv_processor (
     
 
     logic [31:0] mux_inputs [2];  
-    assign mux_inputs[0] = reg_read_data2;
-    assign mux_inputs[1] = imm_extended;
+    assign mux_inputs[0] = reg_read_data2_EX;
+    assign mux_inputs[1] = imm_extended_EX;
 
     // ========== ALU Input 2 Mux ==========
     mux #(.NUM_INPUTS(2)) alu_src_mux2 (
         .data_in(mux_inputs),
         // .data_in[0](reg_read_data2),      // Register data
         // .data_in[1](imm_extended),        // Immediate data
-        .sel(ALUSrc),
+        .sel(ALUSrc_EX),
         .data_out(alu_input2)
     );
 
@@ -240,20 +309,17 @@ module riscv_processor (
     alu alu_inst (
         .alu_in1(alu_input1),
         .alu_in2(alu_input2),
-        .alu_op_ctrl(ALUOp),
-        .shamt(shamt),
-        .alu_out(alu_result)
+        .alu_op_ctrl(ALUOp_EX),
+        .shamt(shamt_EX),
+        .alu_out(alu_result_EX)
     );
 
 
     EX_MEM_reg #(
         .DATA_WIDTH(32)
     ) ex_mem_reg_inst (
-        // Clock and Reset
         .clk(clk),
-        .rst_n(rst_n),
-        
-        // Data Path Input
+        .rst_n(reset_n),
         .alu_result(alu_result_EX),
         .reg_read_data2(reg_read_data2_EX),
         .reg_write_addr(reg_write_addr_EX),
@@ -262,22 +328,23 @@ module riscv_processor (
         .RegWrite(RegWrite_EX),
         .MemReadSigned(MemReadSigned_EX),
         .MemReadSize(MemReadSize_EX),
-        .JAL(JAL_EX),
+        .JAL(Jal_EX),
         .auipc(auipc_EX),
         .lui(lui_EX),
+        .auipc_or_lui_addr(auipc_or_lui_addr_EX),
         
-        // Control Signals Output
         .MemtoReg_out(MemtoReg_MEM),
         .MemWrite_out(MemWrite_MEM),
         .RegWrite_out(RegWrite_MEM),
         .MemReadSigned_out(MemReadSigned_MEM),
         .MemReadSize_out(MemReadSize_MEM),
-        .JAL_out(JAL_MEM),
+        .JAL_out(Jal_MEM),
         .auipc_out(auipc_MEM),
         .lui_out(lui_MEM),
         .alu_result_out(alu_result_MEM),
         .reg_read_data2_out(reg_read_data2_MEM),
-        .reg_write_addr_out(reg_write_addr_MEM)
+        .reg_write_addr_out(reg_write_addr_MEM),
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM),
     );
 
 
@@ -286,16 +353,16 @@ module riscv_processor (
 
     logic [3:0] MemStoreSize;
     write_control_shifter write_control_shifter_inst (
-        .alu_result(alu_result[1:0]),
-        .MemWrite(MemWrite),
+        .alu_result(alu_result_MEM[1:0]),
+        .MemWrite(MemWrite_MEM),
         .MemStoreSize(MemStoreSize)
     );
 
 
     logic [31:0] mem_write_data_out;
     write_data_shifter write_data_shifter_inst(
-        .alu_result(alu_result[1:0]),
-        .mem_write_data_in(reg_read_data2),
+        .alu_result(alu_result_MEM[1:0]),
+        .mem_write_data_in(reg_read_data2_MEM),
         .mem_write_data_out(mem_write_data_out)
     );
 
@@ -306,7 +373,7 @@ module riscv_processor (
     ) data_mem (
         .clk(clk),
         .we(MemStoreSize),
-        .addr(alu_result[11:2]),        // Word-aligned access
+        .addr(alu_result_MEM[11:2]),        // Word-aligned access
         .write_data(mem_write_data_out),    // Data from rs2 << (alu_out[1:0] * 8)
         .read_data(mem_read_data)
     );
@@ -315,29 +382,21 @@ module riscv_processor (
     MEM_WB_reg #(
         .DATA_WIDTH(32)
     ) mem_wb_reg_inst (
-        // Clock and Reset
         .clk(clk),
-        .rst_n(rst_n),
-        
-        // Data Path Input
+        .rst_n(reset_n),
         .alu_result(alu_result_MEM),
         .mem_read_data(mem_read_data_MEM),
         .reg_write_data(reg_write_data_MEM),
         .reg_write_addr(reg_write_addr_MEM),
-        
-        // Control Signals Input
         .MemtoReg(MemtoReg_MEM),
         .RegWrite(RegWrite_MEM),
         .MemReadSigned(MemReadSigned_MEM),
         .MemReadSize(MemReadSize_MEM),
         
-        // Control Signals Output
         .MemtoReg_out(MemtoReg_WB),
         .RegWrite_out(RegWrite_WB),
         .MemReadSigned_out(MemReadSigned_WB),
         .MemReadSize_out(MemReadSize_WB),
-        
-        // Data Path Output
         .alu_result_out(alu_result_WB),
         .mem_read_data_out(mem_read_data_WB),
         .reg_write_data_out(reg_write_data_WB),
@@ -348,18 +407,10 @@ module riscv_processor (
     logic [15:0] halfword;
     logic [32:0] word;
 
-    // demux demux_inst(
-    //     .in(mem_read_data),
-    //     .sel(MemReadSize),
-    //     .Byte(Byte),
-    //     .halfword(halfword),
-    //     .word(word)
-    // );
-
     data_indexer data_indexer_inst (
-        .MemReadSize(MemReadSize),
-        .offset(alu_result[1:0]),
-        .mem_read_data(mem_read_data),
+        .MemReadSize(MemReadSize_WB),
+        .offset(alu_result_WB[1:0]),
+        .mem_read_data(mem_read_data_WB),
         .indexed_data(halfword)
     );
 
@@ -367,7 +418,7 @@ module riscv_processor (
     extender #(.INPUT_WIDTH(8)) 
     byte_extender (
         .in(halfword[7:0]),
-        .sign(MemReadSigned),
+        .sign(MemReadSigned_WB),
         .out(byte_extended)
     );
 
@@ -375,7 +426,7 @@ module riscv_processor (
     extender #(.INPUT_WIDTH(16)) 
     halfword_extender (
         .in(halfword),
-        .sign(MemReadSigned),
+        .sign(MemReadSigned_WB),
         .out(halfword_extended)
     );
 
@@ -388,45 +439,49 @@ module riscv_processor (
     // ========== extended Mux ==========
     mux #(.NUM_INPUTS(3)) extended_mux (
         .data_in (mux_inputs4),
-        .sel(MemReadSize),
+        .sel(MemReadSize_WB),
         .data_out(mem_to_reg)
     );
 
 
+
+
+    //===============rd calculations in EX stage===========
     logic [31:0] jal_rd_mux_inputs [2];
     logic [31:0] jal_rd_mux_out;
 
-    assign jal_rd_mux_inputs[0] = alu_result;
-    assign jal_rd_mux_inputs[1] = pc_plus_4;
+    assign jal_rd_mux_inputs[0] = alu_result_MEM;
+    assign jal_rd_mux_inputs[1] = pc_plus_4; //*******THIS NEEDS TO BE PIPELINED*********
 
     // Mux to output either pc_plus_4 or alu_result depending on if we're using a jal instr. or not
     mux #(.NUM_INPUTS(2)) jal_rd_mux (
         .data_in(jal_rd_mux_inputs),
-        .sel(Jal),
+        .sel(Jal_MEM),
         .data_out(jal_rd_mux_out)
     );
 
     logic [31:0] auipc_rd_mux_inputs [2];
     logic [31:0] auipc_rd_mux_out;
     assign auipc_rd_mux_inputs[0] = jal_rd_mux_out;
-    assign auipc_rd_mux_inputs[1] = pc_current + {instruction[31:12], {12{1'b0}}};
+    assign auipc_rd_mux_inputs[1] = pc_current + {auipc_or_lui_addr_MEM, {12{1'b0}}}; //THIS instruction_ID signal NEEDS TO BE ADDED TO THE PIPE REGS
+
 
     // Mux to output either auipc, lui, or alu data
     mux #(.NUM_INPUTS(2)) auipc_rd_mux (
         .data_in(auipc_rd_mux_inputs),
-        .sel(AuiPc),
+        .sel(auipc_MEM),
         .data_out(auipc_rd_mux_out)
     );
 
     logic [31:0] lui_rd_mux_inputs [2];
     logic [31:0] lui_rd_mux_out;
     assign lui_rd_mux_inputs[0] = auipc_rd_mux_out;
-    assign lui_rd_mux_inputs[1] = {instruction[31:12], {12{1'b0}}};
+    assign lui_rd_mux_inputs[1] = {auipc_or_lui_addr_MEM, {12{1'b0}}}; //THIS instruction_ID signal NEEDS TO BE ADDED TO THE PIPE REGS
 
     // Mux to output either jal data (or alu data) or PC + (imm << 12) based on AuiPc
     mux #(.NUM_INPUTS(2)) lui_rd_mux (
         .data_in(lui_rd_mux_inputs),
-        .sel(Lui),
+        .sel(lui_MEM),
         .data_out(lui_rd_mux_out)
     );
 
@@ -434,21 +489,28 @@ module riscv_processor (
     assign mux_inputs2[0] = lui_rd_mux_out;
     assign mux_inputs2[1] = mem_to_reg;
     
-    // ========== Write-back Mux ==========
+
+
+
+
+    //========== Write-back Mux ==========
     mux #(.NUM_INPUTS(2)) mem_to_reg_mux (
         .data_in (mux_inputs2),
         // .in0(alu_result),          // ALU result
         // .in1(mem_read_data),       // Memory data
-        .sel(MemtoReg),
-        .data_out(reg_write_data)
+        .sel(MemtoReg_WB),
+        .data_out(reg_write_data_WB)
     );
+
+
+
 
     // ========== Branch Control ==========
     logic [31:0] branch_target;
     logic [31:0] branch_extended;
     logic [11:0] branch_imm;
 
-    assign branch_imm = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};		   
+    assign branch_imm = {instruction_ID[31], instruction_ID[7], instruction_ID[30:25], instruction_ID[11:8]};		   //should the branhc imm use the output of the IF_ID pipe reg or the input?
 	//assign branch_imm = {instruction[31], instruction[30-25], instruction[11-8], instruction[7]};
     
     extender #(.INPUT_WIDTH(12)) 
@@ -480,7 +542,7 @@ module riscv_processor (
     logic [31:0] jalr_mux_inputs [2];
     logic [31:0] jalr_mux_out;
     //jal instruction, encoded in offset of 2 bytes
-    assign jalr_mux_inputs[0] = {{11{instruction[31]}}, instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0} + pc_current;
+    assign jalr_mux_inputs[0] = {{11{instruction_ID[31]}}, instruction_ID[31], instruction_ID[19:12], instruction_ID[20], instruction_ID[30:21], 1'b0} + pc_current;
     //jalr instruction
     assign jalr_mux_inputs[1] = alu_result & ~32'b1; //ratified specs tells us to set least significant bit of addition to 0
 

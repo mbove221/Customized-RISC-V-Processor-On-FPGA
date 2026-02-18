@@ -21,6 +21,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     input [31:0] reg_read_data2,
     input [4:0] reg_write_addr,
     input [31:0] imm_extended,
+    input [20:0] auipc_or_lui_addr,
    
     output logic MemRead_out,       
     output logic MemtoReg_out,      
@@ -38,7 +39,8 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     output logic [31:0] reg_read_data1_out,
     output logic [31:0] reg_read_data2_out,
     output logic [4:0] reg_write_addr_out,
-    output logic [31:0] imm_extended_out
+    output logic [31:0] imm_extended_out,
+    output logic [20:0] auipc_or_lui_addr_out
 );
 
     // Internal registers to hold pipeline stage data
@@ -59,6 +61,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     logic [31:0] reg_read_data2_reg;
     logic [4:0] reg_write_addr_reg;
     logic [31:0] imm_extended_reg;
+    logic [20:0] auipc_or_lui_addr_reg;
 
     // Sequential logic: Register all inputs on clock edge
     always_ff @(posedge clk) begin
@@ -81,6 +84,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
             reg_read_data2_reg <= 32'b0;
             reg_write_addr_reg <= 5'b0;
             imm_extended_reg <= 32'b0;
+            auipc_or_lui_addr_reg <= 20'0;
         end else begin
             // Capture inputs on rising clock edge
             MemRead_reg <= MemRead;
@@ -100,6 +104,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
             reg_read_data2_reg <= reg_read_data2;
             reg_write_addr_reg <= reg_write_addr;
             imm_extended_reg <= imm_extended;
+            auipc_or_lui_addr_reg <= auipc_or_lui_addr;
         end
     end
 
@@ -121,5 +126,6 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     assign reg_read_data2_out = reg_read_data2_reg;
     assign reg_write_addr_out = reg_write_addr_reg;
     assign imm_extended_out = imm_extended_reg;
+    assign auipc_or_lui_addr_out = auipc_or_lui_addr_reg;
     
 endmodule
