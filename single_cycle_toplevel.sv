@@ -140,7 +140,7 @@ logic [4:0]  reg_write_addr_WB;
 
     // ========== Instruction Decoding ==========
     assign opcode = instruction_ID[6:0];
-    assign rd = instruction_ID[11:7];
+    assign reg_write_addr_ID = instruction_ID[11:7];
     assign funct3 = instruction_ID[14:12];
     assign rs1 = instruction_ID[19:15];
     assign rs2 = instruction_ID[24:20];
@@ -167,7 +167,7 @@ logic [4:0]  reg_write_addr_WB;
         .MemReadSize(MemReadSize_ID),
         .Sel_imm(Sel_imm),
         .Jal(Jal_ID),
-        .JalR(JalR_ID),
+        .JalR(Jalr_ID),
         .AuiPc(AuiPc_ID),
         .Lui(Lui_ID)
     );
@@ -482,18 +482,16 @@ logic [4:0]  reg_write_addr_WB;
     mux #(.NUM_INPUTS(2)) lui_rd_mux (
         .data_in(lui_rd_mux_inputs),
         .sel(lui_MEM),
-        .data_out(lui_rd_mux_out)
+        .data_out(reg_write_data_MEM)
     );
-
-    logic [31:0] mux_inputs2 [2];  
-    assign mux_inputs2[0] = lui_rd_mux_out;
-    assign mux_inputs2[1] = mem_to_reg;
-    
-
 
 
 
     //========== Write-back Mux ==========
+    logic [31:0] mux_inputs2 [2];  
+    assign mux_inputs2[0] = reg_write_data_WB;
+    assign mux_inputs2[1] = mem_to_reg;
+
     mux #(.NUM_INPUTS(2)) mem_to_reg_mux (
         .data_in (mux_inputs2),
         // .in0(alu_result),          // ALU result
@@ -549,7 +547,7 @@ logic [4:0]  reg_write_addr_WB;
     // ========== JALR Mux ==========
     mux #(.NUM_INPUTS(2)) jalr_mux (
         .data_in (jalr_mux_inputs),
-        .sel(JalR),
+        .sel(Jalr_ID),
         .data_out(jalr_mux_out)
     );
 
@@ -561,7 +559,7 @@ logic [4:0]  reg_write_addr_WB;
     // ========== JAL/PC Next Mux ==========
     mux #(.NUM_INPUTS(2)) jal_mux (
         .data_in (jal_mux_inputs),
-        .sel(Jal),
+        .sel(Jal_ID),
         .data_out(pc_next)
     );
 

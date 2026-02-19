@@ -60,10 +60,10 @@ module main_control_unit(input [6:0] opcode,
 		MemReadSigned = 1'bx;
 		MemReadSize = 2'bx;
 		Sel_imm = 1'bx;
-		Jal = 1'bx;
-		JalR = 1'bx;
-		AuiPc = 1'bx;
-		Lui = 1'bx;
+		Jal = 1'b0;
+		JalR = 1'b0;
+		AuiPc = 1'b0;
+		Lui = 1'b0;
 
 		case(opcode)
 			//Load from memory instruction 
