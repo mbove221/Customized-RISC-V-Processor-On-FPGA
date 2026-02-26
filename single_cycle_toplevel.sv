@@ -269,45 +269,26 @@ logic [4:0]  reg_write_addr_WB;
 
 
 
-    // ========== ALU input 1 shifter ========
-    logic [31:0] shifter_out;
-    shifter shifter_inst(
-        .in0(reg_read_data1_EX),
-        .out(shifter_out)
-    );
-
-    logic [31:0] mux_inputs0 [2];  
-    logic [31:0] alu_input1;
-    logic MemReadOrMemWrite;
-    assign mux_inputs0[0] = reg_read_data1_EX;
-    assign mux_inputs0[1] = shifter_out;
-
-    assign MemReadOrMemWrite = MemRead_EX | MemWrite_EX;
-    //========== ALU Input 1 Mux
-    mux #(.NUM_INPUTS(2)) alu_src_mux1 (
-        .data_in(mux_inputs0),
-        .sel(MemReadOrMemWrite),
-        .data_out(alu_input1)
-    );
-
     
 
-    logic [31:0] mux_inputs [2];  
-    assign mux_inputs[0] = reg_read_data2_EX;
-    assign mux_inputs[1] = imm_extended_EX;
+   
 
-    // ========== ALU Input 2 Mux ==========
-    mux #(.NUM_INPUTS(2)) alu_src_mux2 (
-        .data_in(mux_inputs),
-        // .data_in[0](reg_read_data2),      // Register data
-        // .data_in[1](imm_extended),        // Immediate data
-        .sel(ALUSrc_EX),
-        .data_out(alu_input2)
-    );
+   logic [31:0] mux_inputs [2];  
+   assign mux_inputs[0] = reg_read_data2_EX;
+   assign mux_inputs[1] = imm_extended_EX;
+
+   // ========== ALU Input 2 Mux ==========
+   mux #(.NUM_INPUTS(2)) alu_src_mux2 (
+       .data_in(mux_inputs),
+       // .data_in[0](reg_read_data2),      // Register data
+       // .data_in[1](imm_extended),        // Immediate data
+       .sel(ALUSrc_EX),
+       .data_out(alu_input2)
+   );
 
     // ========== ALU ==========
     alu alu_inst (
-        .alu_in1(alu_input1),
+        .alu_in1(reg_read_data1_EX),
         .alu_in2(alu_input2),
         .alu_op_ctrl(ALUOp_EX),
         .shamt(shamt_EX),
@@ -373,9 +354,9 @@ logic [4:0]  reg_write_addr_WB;
     ) data_mem (
         .clk(clk),
         .we(MemStoreSize),
-        .addr(alu_result_MEM[11:2]),        // Word-aligned access
+        .addr((alu_result_MEM[11:2])),        // Word-aligned access
         .write_data(mem_write_data_out),    // Data from rs2 << (alu_out[1:0] * 8)
-        .read_data(mem_read_data)
+        .read_data(mem_read_data_MEM)
     );
 
 
@@ -434,7 +415,7 @@ logic [4:0]  reg_write_addr_WB;
     logic [31:0] mem_to_reg; 
     assign mux_inputs4[0] = byte_extended;
     assign mux_inputs4[1] = halfword_extended;
-    assign mux_inputs4[2] = mem_read_data;
+    assign mux_inputs4[2] = mem_read_data_WB;
 
     // ========== extended Mux ==========
     mux #(.NUM_INPUTS(3)) extended_mux (
