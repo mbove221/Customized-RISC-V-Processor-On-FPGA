@@ -56,6 +56,7 @@ module riscv_processor #(
         .clk(clk),
         .reset_n(reset_n),
         .pc_next(pc_next),
+        .processor_done(processor_done),
         .pc(pc_current)
     );
 
