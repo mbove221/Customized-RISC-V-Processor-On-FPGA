@@ -16,8 +16,10 @@ module data_memory #(
 
     initial begin
         ram[4] = 4;
-        ram[5] = 5;
-        ram[1] = 32'hDEADBEEF;
+        ram[5] = 5;		
+		ram[2] = 32'hABABABAB;
+		ram[1] = 32'hCDCDCDCD;
+        ram[0] = 32'hDEADBEEF;
     end
 
     always @(posedge clk) begin
