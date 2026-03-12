@@ -51,12 +51,13 @@ his Software without prior written authorization from Xilinx.
 #include "xil_printf.h"
 
 //For these addresses, only writes to RSTN_ADDR LSB controls reset, Read processor_done LSB
-#define RSTN_ADDR ((volatile unsigned int*) XPAR_SINGLE_CYCLE_V2_0_S00_AXI_BASEADDR)
-#define PROCESSOR_DONE_ADDR ((volatile unsigned int*)(XPAR_SINGLE_CYCLE_V2_0_S00_AXI_BASEADDR + 4))
+#define RSTN_ADDR ((volatile unsigned int*) XPAR_SINGLE_CYCLE_0_S00_AXI_BASEADDR)
 
-#define INSTRUCTION_MEM_ADDR ((volatile unsigned int*) XPAR_AXI_BRAM_CTRL_0_S_AXI_CTRL_BASEADDR)
+#define PROCESSOR_DONE_ADDR ((volatile unsigned int*)(XPAR_SINGLE_CYCLE_0_S00_AXI_BASEADDR + 4))
 
-#define REG_FILE_ADDR ((volatile unsigned int*) XPAR_AXI_BRAM_CTRL_1_S_AXI_CTRL_BASEADDR)
+#define INSTRUCTION_MEM_ADDR ((volatile unsigned int*) XPAR_AXI_BRAM_CTRL_0_S_AXI_BASEADDR)
+
+#define REG_FILE_ADDR ((volatile unsigned int*) XPAR_AXI_BRAM_CTRL_1_S_AXI_BASEADDR)
 
 volatile unsigned int* rst_n = RSTN_ADDR;
 
@@ -67,6 +68,8 @@ volatile unsigned int* program_counter = PROCESSOR_DONE_ADDR;
 volatile unsigned int* instr_mem = INSTRUCTION_MEM_ADDR;
 
 volatile unsigned int* reg_file = REG_FILE_ADDR;
+
+unsigned int instructions[] = {0x00000013, 0x7ff00093, 0x00400113, 0x004091b3, 0x0040d233, 0x80000293, 0x00000000};
 
 int main()
 {
@@ -82,31 +85,64 @@ int main()
     //Read the processor_done status (should be 0)
     xil_printf("processor_done status before instructions: %d\r\n", processor_done[0]);
     //Load the instruction memory with the code
-    instr_mem[0] = 0x00000013;
-    instr_mem[1] = 0x00000013;
-    instr_mem[2] = 0x00000013;
-    instr_mem[3] = 0x00000000;
-
-    xil_printf("first Instruction: 0x%x\r\n", instr_mem[0]);
-    xil_printf("second Instruction: 0x%x\r\n", instr_mem[1]);
-    xil_printf("third Instruction: 0x%x\r\n", instr_mem[2]);
-    xil_printf("fourth Instruction: 0x%x\r\n", instr_mem[3]);
-
-    //De-assert the reset
-    rst_n[0] = 1;
-    xil_printf("rst_n after reset =: %d\r\n", rst_n[0]);
-
-    //Wait until processor_done status == 1
-    while(processor_done[0] != 1){
-        xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
+    int i;
+    xil_printf("Processor done address: %p\r\n", processor_done);
+    for(i = 0; i < 1024; i++){
+        instr_mem[i] = 0x00000013;
     }
+    i = 0;
 
-    print("Processor done == 1!!!!!!\r\n");
-    xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
+    for(i = 0; i < sizeof(instructions)/sizeof(int); i++){
+    	instr_mem[i] = instructions[i];
+    	xil_printf("instr_mem[%d] = 0x%x\r\n", i, instr_mem[i]);
+    }
+    print("\r\n");
+//    instr_mem[2] = 0x00000013;
+//    instr_mem[2] = 0x00000000;
+
+//    xil_printf("first Instruction: 0x%x\r\n", instr_mem[0]);
+//    xil_printf("second Instruction: 0x%x\r\n", instr_mem[1]);
+//    xil_printf("third Instruction: 0x%x\r\n", instr_mem[2]);
+//    xil_printf("fourth Instruction: 0x%x\r\n", instr_mem[3]);
+//    xil_printf("fifth Instruction: 0x%x\r\n", instr_mem[4]);
+//    instr_mem[2] = 0x00000000;
+    rst_n[0] = 1;
+    while((processor_done[0] & 0x1) != 1){
+        xil_printf("Processor_done = %d\r\n", processor_done[0]);
+        print("instr_mem != 0");
+        xil_printf("i = %d\r\n", i);
+        i = (i + 1) % 1024;
+    }
+//    xil_printf("Processor_done = 0x%x\r\n", processor_done[0]);
+//    xil_printf("i = %d\r\n\n", i);
+//
+//    //De-assert the reset
+//
+//    xil_printf("rst_n after reset =: %d\r\n", rst_n[0]);
+//
+    i = 0;
+    while(instr_mem[i] != 0){
+    	xil_printf("instr_mem[%d] = 0x%x\r\n", i, instr_mem[i]);
+    	i++;
+    }
+//    print("\r\n");
+//
+    xil_printf("instr_mem[%d] = 0x%x\r\n", i, instr_mem[i]);
+    i = 0;
+    for(i = 1; i <= 5; i++){
+    	xil_printf("reg_file[%d] = 0x%x\r\n", i, reg_file[i]);
+    }
+//    //Wait until processor_done status == 1
+////    while(processor_done[0] != 1){
+////        xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
+////    }
+//
+//    print("Processor done == 1!!!!!!\r\n");
+//    xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
 
     while(1){
-    	xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
-        print("We done!!!\r\n");
+//        xil_printf("Program counter: 0x%x\r\n", (*processor_done & 0x1E) >> 1);
+//        print("We done!!!\r\n");
     }
     //If that's the case, read register file
 
