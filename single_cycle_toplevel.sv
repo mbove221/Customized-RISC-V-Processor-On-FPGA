@@ -71,11 +71,15 @@ module riscv_processor (
     logic load_use_hazard_ex;
     logic control_stall;
 
+ 
+
+
     // ========== Program Counter ==========
     program_counter pc_inst (
         .clk(clk),
         .reset_n(reset_n),
         .pc_write(pc_write),
+        .processor_done(processor_done),
         .pc_next(pc_next),
         .pc(pc_current)
     );
@@ -92,10 +96,12 @@ module riscv_processor (
         .DATA_WIDTH(32)
     ) instr_mem (
         .clk(clk),
-        .we(1'b0),
+        .we(we_IM_FPGA),                // write enable from BRAM controller
         .addr(pc_current[11:2]),
-        .write_data(32'b0),
-        .read_data(instruction)
+        .read_data(instruction_ID),
+        .addr_FPGA(instr_mem_addr_FPGA),
+        .write_data_FPGA(write_data_IM_FPGA),
+        .read_data_FPGA(read_data_IM_FPGA)
     );
 
     IF_ID_reg #(.DATA_WIDTH(32)) if_id_reg_inst (
@@ -103,9 +109,7 @@ module riscv_processor (
         .rst_n(reset_n),
         .enable(if_id_enable),
         .flush(if_id_flush),
-        .instruction(instruction),
         .pc(pc_current),
-        .instruction_out(instruction_ID),
         .pc_out(pc_ID)
     );
 
@@ -118,6 +122,12 @@ module riscv_processor (
     assign funct7 = instruction_ID[31:25];
     assign shamt_ID = instruction_ID[24:20];
     assign auipc_or_lui_addr_ID = instruction_ID[31:12];
+
+    always_comb begin
+        if (opcode == 7'b0000000) processor_done = 1'b1;
+        else processor_done = 0;
+    end
+
 
     main_control_unit control_unit (
         .opcode(opcode),
@@ -152,34 +162,13 @@ module riscv_processor (
         .wdata(reg_write_data),
         .raddr1(rs1),
         .raddr2(rs2),
+        .raddr_FPGA(rf_addr_FPGA),
         .rdata1(reg_read_data1_ID),
-        .rdata2(reg_read_data2_ID)
+        .rdata2(reg_read_data2_ID),
+        .rdata_FPGA(read_data_rf_FPGA)
     );
 
-    // Decode-stage forwarding to build source operands before ID/EX latch
-    always_comb begin
-        rs1_fwd_ID = reg_read_data1_ID;
-        rs2_fwd_ID = reg_read_data2_ID;
-
-        // Forward from EX stage ALU-producing instruction
-        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs1))
-            rs1_fwd_ID = alu_result_EX;
-        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs1))
-            rs1_fwd_ID = reg_write_data_MEM;
-        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs1))
-            rs1_fwd_ID = mem_to_reg_MEM;
-        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs1))
-            rs1_fwd_ID = reg_write_data;
-
-        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs2))
-            rs2_fwd_ID = alu_result_EX;
-        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs2))
-            rs2_fwd_ID = reg_write_data_MEM;
-        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs2))
-            rs2_fwd_ID = mem_to_reg_MEM;
-        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs2))
-            rs2_fwd_ID = reg_write_data;
-    end
+    
 
     // Immediate generation for RV32I control-flow and ALU/memory operations
     logic signed [31:0] imm_i, imm_s, imm_b, imm_j;
@@ -241,8 +230,8 @@ module riscv_processor (
         .rs1(rs1),
         .rs2(rs2),
         .pc(pc_ID),
-        .reg_read_data1(rs1_fwd_ID),
-        .reg_read_data2(rs2_fwd_ID),
+        .reg_read_data1(reg_read_data1_ID),
+        .reg_read_data2(reg_read_data2_ID),
         .reg_write_addr(rd),
         .imm_extended(imm_extended_ID),
         .auipc_or_lui_addr(auipc_or_lui_addr_ID),
@@ -272,8 +261,33 @@ module riscv_processor (
         .auipc_or_lui_addr_out(auipc_or_lui_addr_EX)
     );
 
+// Decode-stage forwarding to build source operands before ID/EX latch
+    always_comb begin
+        rs1_fwd_EX = reg_read_data1_EX;
+        rs2_fwd_EX = reg_read_data2_EX;
+
+        // Forward from EX stage ALU-producing instruction
+        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs1_EX))
+            rs1_fwd_EX = alu_result_EX;
+        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs1_EX))
+            rs1_fwd_EX = reg_write_data_MEM;
+        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs1_EX))
+            rs1_fwd_EX = mem_to_reg_MEM;
+        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs1_EX))
+            rs1_fwd_EX = reg_write_data;
+
+        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs2_EX))
+            rs2_fwd_EX = alu_result_EX;
+        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs2_EX))
+            rs2_fwd_EX = reg_write_data_MEM;
+        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs2_EX))
+            rs2_fwd_EX = mem_to_reg_MEM;
+        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs2_EX))
+            rs2_fwd_EX = reg_write_data;
+    end
+
     logic [31:0] mux_inputs [2];
-    assign mux_inputs[0] = reg_read_data2_EX;
+    assign mux_inputs[0] = rs2_fwd_EX;
     assign mux_inputs[1] = imm_extended_EX;
 
     mux #(.NUM_INPUTS(2)) alu_src_mux2 (
@@ -283,7 +297,7 @@ module riscv_processor (
     );
 
     alu alu_inst (
-        .alu_in1(reg_read_data1_EX),
+        .alu_in1(rs1_fwd_EX),
         .alu_in2(alu_input2),
         .alu_op_ctrl(ALUOp_EX),
         .shamt(shamt_EX),
@@ -291,8 +305,8 @@ module riscv_processor (
     );
 
     branch_comparator branch_comparator_ex (
-        .reg_data1(reg_read_data1_EX),
-        .reg_data2(reg_read_data2_EX),
+        .reg_data1(rs1_fwd_EX),
+        .reg_data2(rs2_fwd_EX),
         .branch(Branch_EX),
         .branch_type(BranchType_EX),
         .pc_src(branch_taken_EX)
@@ -397,7 +411,7 @@ module riscv_processor (
     mux #(.NUM_INPUTS(3)) load_format_mem_mux (
         .data_in(load_mux_inputs_MEM),
         .sel(MemReadSize_MEM),
-        .data_out(mem_to_reg_MEM)
+        .data_out(mem_read_data_WB)
     );
 
     // rd calculations in MEM stage
@@ -437,7 +451,7 @@ module riscv_processor (
         .clk(clk),
         .rst_n(reset_n),
         .alu_result(alu_result_MEM),
-        .mem_read_data(mem_to_reg_MEM),
+        //.mem_read_data(mem_to_reg_MEM),
         .reg_write_data(reg_write_data_MEM),
         .reg_write_addr(reg_write_addr_MEM),
         .MemtoReg(MemtoReg_MEM),
@@ -450,7 +464,7 @@ module riscv_processor (
         .MemReadSigned_out(MemReadSigned_WB),
         .MemReadSize_out(MemReadSize_WB),
         .alu_result_out(alu_result_WB),
-        .mem_read_data_out(mem_read_data_WB),
+        //.mem_read_data_out(mem_read_data_WB),
         .reg_write_data_out(reg_write_data_WB),
         .reg_write_addr_out(reg_write_addr_WB)
     );

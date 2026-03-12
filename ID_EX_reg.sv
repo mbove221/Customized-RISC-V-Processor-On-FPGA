@@ -4,6 +4,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
 (
     input logic clk,
     input logic rst_n,
+    input processor_done,
     input logic flush,
     input logic Branch,
     input logic [2:0] BranchType,
@@ -55,7 +56,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
 );
 
     always_ff @(posedge clk) begin
-        if (!rst_n || flush) begin
+        if (!rst_n || flush || processor_done) begin
             Branch_out <= 1'b0;
             BranchType_out <= 3'b0;
             MemRead_out <= 1'b0;
