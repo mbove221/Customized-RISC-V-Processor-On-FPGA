@@ -1,14 +1,14 @@
 module riscv_processor #(
-    localparam IM_ADDR_WIDTH = 6,
-    localparam DM_ADDR_WIDTH = 8,
+    localparam IM_ADDR_WIDTH = 13,
+    localparam DM_ADDR_WIDTH = 13,
     localparam DATA_WIDTH = 32,
-    localparam RF_ADDR_WIDTH = 5
+    localparam RF_ADDR_WIDTH = 13
 )(
     input logic clk,
     input logic reset_n,
     input [IM_ADDR_WIDTH-1 : 0] instr_mem_addr_FPGA,
     input [DATA_WIDTH-1 : 0] write_data_IM_FPGA,
-    input we_IM_FPGA,
+    input [3:0] we_IM_FPGA,
     input [RF_ADDR_WIDTH-1:0] rf_addr_FPGA,
     output logic [DATA_WIDTH-1 : 0] read_data_IM_FPGA,
     output logic [DATA_WIDTH-1 : 0] read_data_rf_FPGA,
@@ -69,16 +69,17 @@ module riscv_processor #(
     );
 
     assign program_counter = pc_current[3:0];
+
     // ========== Instruction Memory ==========
     instruction_memory #(
-        .ADDR_WIDTH(IM_ADDR_WIDTH),  // 1024 instructions
+        .ADDR_WIDTH(IM_ADDR_WIDTH - 2),  
         .DATA_WIDTH(32)
     ) instr_mem (
         .clk(clk),
         .we(we_IM_FPGA),                // write enable from BRAM controller
-        .addr(pc_current[11:2]),        // mem addr is only 10 bits & Word-aligned access (divide by 4), i.e., the last two bits are always zero so we discard them
+        .addr({1'b0,pc_current[11:2]}),        // mem addr is only 10 bits & Word-aligned access (divide by 4), i.e., the last two bits are always zero so we discard them
         .read_data(instruction),
-        .addr_FPGA(instr_mem_addr_FPGA),
+        .addr_FPGA(instr_mem_addr_FPGA[12:2]),
         .write_data_FPGA(write_data_IM_FPGA),
         .read_data_FPGA(read_data_IM_FPGA)
     );

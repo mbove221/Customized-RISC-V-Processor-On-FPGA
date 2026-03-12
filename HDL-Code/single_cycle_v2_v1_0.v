@@ -20,13 +20,13 @@
                input wire bram_rstn,
                input wire bram_en_im,
                
-               input wire [5:0] bram_im_addr,
+               input wire [12:0] bram_im_addr,
                input wire [31:0] bram_wrdata_im,
-               input wire bram_we_im,
+               input wire [3:0] bram_we_im,
                output wire [31:0] bram_rddata_im,
                
-               input wire [4:0] bram_rf_addr,
-               output wire bram_rddata_rf,
+               input wire [12:0] bram_rf_addr,
+               output wire [31:0] bram_rddata_rf,
                input wire bram_en_rf,
                
                input wire bram_rf_clk,

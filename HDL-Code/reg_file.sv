@@ -10,7 +10,7 @@ module regfile_ff #(
   input  logic [W-1:0]          wdata,
   input  logic [$clog2(N)-1:0]  raddr1, // If you have N registers, your address width needs to be $clog2(N) bits wide.
   input  logic [$clog2(N)-1:0]  raddr2,
-  input  logic [$clog2(N)-1:0]  raddr_FPGA,
+  input  logic [12:0]  raddr_FPGA,
   output logic [W-1:0]          rdata1,
   output logic [W-1:0]          rdata2,
   output logic [W-1:0]          rdata_FPGA
@@ -25,7 +25,7 @@ module regfile_ff #(
     end
     else if (wen) regs[waddr] <= wdata;
 
-    rdata_FPGA <= regs[raddr_FPGA];
+    rdata_FPGA <= regs[raddr_FPGA[12:2]];
   end
 
 
