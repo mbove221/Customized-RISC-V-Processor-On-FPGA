@@ -19,7 +19,7 @@ module regfile_ff #(
   // Register array as FFs
   logic [W-1:0] regs [0:N-1];
 
-  /always_ff @(posedge clk) begin
+  always_ff @(posedge clk) begin
     if(!reset_n) begin
       for(int i = 0; i < N; i++) regs[i] = 0;
     end

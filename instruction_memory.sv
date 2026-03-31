@@ -4,7 +4,7 @@ module instruction_memory #(
     DATA_WIDTH = 32
 )(
     input clk, 
-    input we,
+    input [3:0] we,
     //input re, //Will need when we have pipelined processor
     input [ADDR_WIDTH-1 : 0] addr,
     input [ADDR_WIDTH-1 : 0] addr_FPGA,

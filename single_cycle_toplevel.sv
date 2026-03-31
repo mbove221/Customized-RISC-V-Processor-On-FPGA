@@ -1,6 +1,19 @@
-module riscv_processor (
+module riscv_processor #(
+    localparam IM_ADDR_WIDTH = 13,
+    localparam DM_ADDR_WIDTH = 13,
+    localparam DATA_WIDTH = 32,
+    localparam RF_ADDR_WIDTH = 13
+)(
     input logic clk,
-    input logic reset_n
+    input logic reset_n,
+    input [IM_ADDR_WIDTH-1 : 0] instr_mem_addr_FPGA,
+    input [DATA_WIDTH-1 : 0] write_data_IM_FPGA,
+    input [3:0] we_IM_FPGA,
+    input [RF_ADDR_WIDTH-1:0] rf_addr_FPGA,
+    output logic [DATA_WIDTH-1 : 0] read_data_IM_FPGA,
+    output logic [DATA_WIDTH-1 : 0] read_data_rf_FPGA,
+    output logic processor_done,
+    output logic [3:0] program_counter
 );
 
     // ========================= IF stage =========================
@@ -44,7 +57,7 @@ module riscv_processor (
     logic [19:0] auipc_or_lui_addr_EX;
     alu_op_pkg::alu_op_t ALUOp_EX;
 
-    logic [31:0] rs1_fwd_ID, rs2_fwd_ID;
+    logic [31:0] rs1_fwd_EX, rs2_fwd_EX;
     logic [31:0] alu_input2, alu_result_raw_EX, alu_result_EX;
     logic [31:0] branch_jump_target_EX;
     logic branch_taken_EX, control_redirect_EX;
