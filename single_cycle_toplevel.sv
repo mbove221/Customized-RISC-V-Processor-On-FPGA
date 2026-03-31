@@ -200,7 +200,7 @@ module riscv_processor (
                        opcode == 7'b1100011);   // Branch
     end
 
-    assign load_use_hazard_ex = MemRead_EX && (reg_write_addr_EX != 5'd0) &&			  //we only use this stall if there exists an instruction that takes either rs1 or rs2 as source regs.
+    assign load_use_hazard_ex = MemRead_EX &&			  //we only use this stall if there exists an instruction that takes either rs1 or rs2 as source regs.
                                 ((uses_rs1_ID && (reg_write_addr_EX == rs1)) ||			  //this way we prevent a false stall for instr like addi
                                  (uses_rs2_ID && (reg_write_addr_EX == rs2)));
 
@@ -267,22 +267,22 @@ module riscv_processor (
         rs2_fwd_EX = reg_read_data2_EX;
 
         // Forward from EX stage ALU-producing instruction
-        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs1_EX))
-            rs1_fwd_EX = alu_result_EX;
-        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs1_EX))
+        // if (RegWrite_EX && !MemtoReg_EX && (reg_write_addr_EX == rs1_EX))
+        //     rs1_fwd_EX = alu_result_EX;
+        if (RegWrite_MEM && !MemtoReg_MEM && (reg_write_addr_MEM == rs1_EX))
             rs1_fwd_EX = reg_write_data_MEM;
-        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs1_EX))
-            rs1_fwd_EX = mem_to_reg_MEM;
-        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs1_EX))
+        // else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs1_EX))
+        //     rs1_fwd_EX = mem_to_reg_MEM;
+        else if (RegWrite_WB && (reg_write_addr_WB == rs1_EX))
             rs1_fwd_EX = reg_write_data;
 
-        if (RegWrite_EX && (reg_write_addr_EX != 5'd0) && !MemtoReg_EX && (reg_write_addr_EX == rs2_EX))
-            rs2_fwd_EX = alu_result_EX;
-        else if (RegWrite_MEM && (reg_write_addr_MEM != 5'd0) && !MemtoReg_MEM && (reg_write_addr_MEM == rs2_EX))
+        // if (RegWrite_EX && !MemtoReg_EX && (reg_write_addr_EX == rs2_EX))
+        //     rs2_fwd_EX = alu_result_EX;
+        if (RegWrite_MEM && !MemtoReg_MEM && (reg_write_addr_MEM == rs2_EX))
             rs2_fwd_EX = reg_write_data_MEM;
-        else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs2_EX))
-            rs2_fwd_EX = mem_to_reg_MEM;
-        else if (RegWrite_WB && (reg_write_addr_WB != 5'd0) && (reg_write_addr_WB == rs2_EX))
+        // else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs2_EX))
+        //     rs2_fwd_EX = mem_to_reg_MEM;
+        else if (RegWrite_WB && (reg_write_addr_WB == rs2_EX))
             rs2_fwd_EX = reg_write_data;
     end
 

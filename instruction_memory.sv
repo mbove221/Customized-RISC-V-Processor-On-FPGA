@@ -22,13 +22,13 @@ module instruction_memory #(
 
     always @(posedge clk) begin
         if(we[0] ) 
-                ram[addr_FPGA][7:0] <= write_data_FPGA[7:0];
-            if(we[1]) 
-                ram[addr_FPGA][15:8] <= write_data_FPGA[15:8];
-            if(we[2]) 
-                ram[addr_FPGA][23:16] <= write_data_FPGA[23:16];
-            if(we[3]) 
-                ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
+            ram[addr_FPGA][7:0] <= write_data_FPGA[7:0];
+        if(we[1]) 
+            ram[addr_FPGA][15:8] <= write_data_FPGA[15:8];
+        if(we[2]) 
+            ram[addr_FPGA][23:16] <= write_data_FPGA[23:16];
+        if(we[3]) 
+            ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
         read_data_FPGA <= ram[addr_FPGA];
         read_data <= ram[addr];
     end
