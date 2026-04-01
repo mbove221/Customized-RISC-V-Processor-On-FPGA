@@ -30,8 +30,8 @@ module regfile_ff #(
 
 
   always_comb begin
-    rdata1 = regs[raddr1];
-    rdata2 = regs[raddr2];
+    rdata1 = (wen && (waddr == raddr1)) ? wdata : regs[raddr1];
+    rdata2 = (wen && (waddr == raddr2)) ? wdata : regs[raddr2];
   end
 
 endmodule

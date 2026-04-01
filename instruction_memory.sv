@@ -6,6 +6,7 @@ module instruction_memory #(
     input clk, 
     input [3:0] we,
     //input re, //Will need when we have pipelined processor
+    input flush,
     input [ADDR_WIDTH-1 : 0] addr,
     input [ADDR_WIDTH-1 : 0] addr_FPGA,
     input [DATA_WIDTH-1 : 0] write_data_FPGA,
@@ -30,9 +31,11 @@ module instruction_memory #(
         if(we[3]) 
             ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
         read_data_FPGA <= ram[addr_FPGA];
-        read_data <= ram[addr];
     end
 
-    
+    always @(posedge clk) begin
+        if (flush) read_data <= 32'b0; //Flush instruction to NOP (all bits 0)
+        else read_data <= ram[addr];
+    end
 
 endmodule

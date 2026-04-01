@@ -3,6 +3,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     input clk, 
     input rst_n,
     input [31:0] alu_result,
+    input [31:0] pc,
     input [31:0] reg_read_data2,
     input [4:0] reg_write_addr,
     input MemtoReg,
@@ -24,6 +25,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     output logic auipc_out,         
     output logic lui_out, 
     output logic [31:0] alu_result_out,
+    output logic [31:0] pc_out,
     output logic [31:0] reg_read_data2_out,
     output logic [4:0] reg_write_addr_out,
     output logic [19:0] auipc_or_lui_addr_out 
@@ -31,6 +33,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
 
     // Data path registers
     logic [31:0] alu_result_reg;
+    logic [31:0] pc_reg;
     logic [31:0] reg_read_data2_reg;
     logic [4:0] reg_write_addr_reg;
     
@@ -49,6 +52,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
         if (!rst_n) begin
             // Reset data path registers
             alu_result_reg <= 32'b0;
+            pc_reg <= 32'b0;
             reg_read_data2_reg <= 32'b0;
             reg_write_addr_reg <= 5'b0;
             
@@ -66,6 +70,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
         else begin
             // Capture data path inputs
             alu_result_reg <= alu_result;
+            pc_reg <= pc;
             reg_read_data2_reg <= reg_read_data2;
             reg_write_addr_reg <= reg_write_addr;
             
@@ -84,6 +89,7 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
 
     // Assign data path outputs
     assign alu_result_out = alu_result_reg;
+    assign pc_out = pc_reg;
     assign reg_read_data2_out = reg_read_data2_reg;
     assign reg_write_addr_out = reg_write_addr_reg;
     

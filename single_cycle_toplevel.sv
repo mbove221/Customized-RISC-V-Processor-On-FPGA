@@ -65,6 +65,7 @@ module riscv_processor #(
 
     // ========================= MEM stage =========================
     logic MemtoReg_MEM, RegWrite_MEM, MemReadSigned_MEM, Jal_MEM, auipc_MEM, lui_MEM;
+    logic [31:0] pc_MEM;
     logic [1:0] MemReadSize_MEM;
     logic [3:0] MemWrite_MEM;
     logic [31:0] alu_result_MEM, reg_read_data2_MEM, mem_read_data_MEM, reg_write_data_MEM;
@@ -76,6 +77,7 @@ module riscv_processor #(
     logic MemtoReg_WB, RegWrite_WB, MemReadSigned_WB;
     logic [1:0] MemReadSize_WB;
     logic [31:0] alu_result_WB, mem_read_data_WB, reg_write_data_WB;
+    logic [31:0] mem_read_data_formatted_MEM;
     logic [4:0] reg_write_addr_WB;
 
     // Hazard detection helpers
@@ -103,13 +105,16 @@ module riscv_processor #(
         .sum(pc_plus_4)
     );
 
+    logic [9:0] instr_mem_addr;
+    // assign instr_mem_addr = (if_id_flush) ? 0 : pc_current[11:2];
     // ========== Instruction Memory ==========
     instruction_memory #(
         .ADDR_WIDTH(10),
         .DATA_WIDTH(32)
     ) instr_mem (
         .clk(clk),
-        .we(we_IM_FPGA),                // write enable from BRAM controller
+        .we(we_IM_FPGA),  // write enable from BRAM controller
+        .flush(if_id_flush), // flush signal to clear IF/ID register on control hazard    
         .addr(pc_current[11:2]),
         .read_data(instruction_ID),
         .addr_FPGA(instr_mem_addr_FPGA),
@@ -140,7 +145,7 @@ module riscv_processor #(
         if (opcode == 7'b0000000) processor_done = 1'b1;
         else processor_done = 0;
     end
-
+    // assign processor_done = 0;
 
     main_control_unit control_unit (
         .opcode(opcode),
@@ -213,9 +218,26 @@ module riscv_processor #(
                        opcode == 7'b1100011);   // Branch
     end
 
-    assign load_use_hazard_ex = MemRead_EX &&			  //we only use this stall if there exists an instruction that takes either rs1 or rs2 as source regs.
-                                ((uses_rs1_ID && (reg_write_addr_EX == rs1)) ||			  //this way we prevent a false stall for instr like addi
-                                 (uses_rs2_ID && (reg_write_addr_EX == rs2)));
+    // assign load_use_hazard_ex = MemRead_EX &&			 
+    //                             ((uses_rs1_ID && (reg_write_addr_EX == rs1)) ||			  
+    //                              (uses_rs2_ID && (reg_write_addr_EX == rs2)));
+
+    always_comb begin                               //we only use this stall if there exists an instruction that takes either rs1 or rs2 as source regs.
+        if (MemRead_EX && ((uses_rs1_ID && (reg_write_addr_EX == rs1)) ||       //this way we prevent a false stall for instr like addi
+                        (uses_rs2_ID && (reg_write_addr_EX == rs2))))
+            load_use_hazard_ex = 1'b1;  
+        else
+            load_use_hazard_ex = 1'b0;
+    end
+
+    // always_comb begin                               //we only use this stall if there exists an instruction that takes either rs1 or rs2 as source regs.
+    //     if (MemRead_MEM && ((uses_rs1_ID && (reg_write_addr_EX == rs1)) ||       //this way we prevent a false stall for instr like addi
+    //                     (uses_rs2_ID && (reg_write_addr_EX == rs2))))
+    //         load_use_hazard_ex = 1'b1;  
+    //     else
+    //         load_use_hazard_ex = 1'b0;
+    // end
+
 
     assign control_stall = load_use_hazard_ex;
     assign pc_write = ~control_stall;
@@ -284,7 +306,7 @@ module riscv_processor #(
         //     rs1_fwd_EX = alu_result_EX;
         if (RegWrite_MEM && !MemtoReg_MEM && (reg_write_addr_MEM == rs1_EX))
             rs1_fwd_EX = reg_write_data_MEM;
-        // else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs1_EX))
+        // else if (MemtoReg_MEM && (reg_write_addr_MEM == rs1_EX))
         //     rs1_fwd_EX = mem_to_reg_MEM;
         else if (RegWrite_WB && (reg_write_addr_WB == rs1_EX))
             rs1_fwd_EX = reg_write_data;
@@ -293,7 +315,7 @@ module riscv_processor #(
         //     rs2_fwd_EX = alu_result_EX;
         if (RegWrite_MEM && !MemtoReg_MEM && (reg_write_addr_MEM == rs2_EX))
             rs2_fwd_EX = reg_write_data_MEM;
-        // else if (MemtoReg_MEM && (reg_write_addr_MEM != 5'd0) && (reg_write_addr_MEM == rs2_EX))
+        // else if (MemtoReg_MEM && (reg_write_addr_MEM == rs2_EX))
         //     rs2_fwd_EX = mem_to_reg_MEM;
         else if (RegWrite_WB && (reg_write_addr_WB == rs2_EX))
             rs2_fwd_EX = reg_write_data;
@@ -330,10 +352,10 @@ module riscv_processor #(
     always_comb begin
         branch_jump_target_EX = pc_EX + imm_extended_EX;
         if (Jalr_EX)
-            branch_jump_target_EX = (reg_read_data1_EX + imm_extended_EX) & 32'hFFFFFFFE;
+            branch_jump_target_EX = (rs1_fwd_EX + imm_extended_EX) & 32'hFFFFFFFE;
     end
 
-    assign control_redirect_EX = branch_taken_EX | Jal_EX;
+    assign control_redirect_EX = branch_taken_EX | Jal_EX | Jalr_EX;
     assign if_id_flush = control_redirect_EX;
     assign id_ex_flush = control_stall | control_redirect_EX;
 
@@ -341,6 +363,7 @@ module riscv_processor #(
         .clk(clk),
         .rst_n(reset_n),
         .alu_result(alu_result_EX),
+        .pc(pc_EX),
         .reg_read_data2(reg_read_data2_EX),
         .reg_write_addr(reg_write_addr_EX),
         .MemtoReg(MemtoReg_EX),
@@ -362,6 +385,7 @@ module riscv_processor #(
         .auipc_out(auipc_MEM),
         .lui_out(lui_MEM),
         .alu_result_out(alu_result_MEM),
+        .pc_out(pc_MEM),
         .reg_read_data2_out(reg_read_data2_MEM),
         .reg_write_addr_out(reg_write_addr_MEM),
         .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM)
@@ -423,11 +447,11 @@ module riscv_processor #(
 
     mux #(.NUM_INPUTS(3)) load_format_mem_mux (
         .data_in(load_mux_inputs_MEM),
-        .sel(MemReadSize_MEM),
+        .sel(MemReadSize_WB),
         .data_out(mem_read_data_WB)
     );
 
-    // rd calculations in MEM stage
+    // =================== rd calculations in MEM stage ================
     logic [31:0] jal_rd_mux_inputs [2];
     logic [31:0] jal_rd_mux_out;
     assign jal_rd_mux_inputs[0] = alu_result_MEM;
@@ -442,7 +466,7 @@ module riscv_processor #(
     logic [31:0] auipc_rd_mux_inputs [2];
     logic [31:0] auipc_rd_mux_out;
     assign auipc_rd_mux_inputs[0] = jal_rd_mux_out;
-    assign auipc_rd_mux_inputs[1] = pc_current + {auipc_or_lui_addr_MEM, {12{1'b0}}};
+    assign auipc_rd_mux_inputs[1] = pc_MEM + {auipc_or_lui_addr_MEM, {12{1'b0}}};
 
     mux #(.NUM_INPUTS(2)) auipc_rd_mux (
         .data_in(auipc_rd_mux_inputs),
@@ -460,6 +484,8 @@ module riscv_processor #(
         .data_out(reg_write_data_MEM)
     );
 
+
+    //=================== MEM/WB Pipeline Register ===========================
     MEM_WB_reg #(.DATA_WIDTH(32)) mem_wb_reg_inst (
         .clk(clk),
         .rst_n(reset_n),
