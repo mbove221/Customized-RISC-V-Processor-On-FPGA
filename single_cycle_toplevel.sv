@@ -105,7 +105,8 @@ module riscv_processor #(
         .sum(pc_plus_4)
     );
 
-    logic [9:0] instr_mem_addr;
+    logic [31:0] instruction_direct;
+    //logic [9:0] instr_mem_addr;
     // assign instr_mem_addr = (if_id_flush) ? 0 : pc_current[11:2];
     // ========== Instruction Memory ==========
     instruction_memory #(
@@ -114,14 +115,22 @@ module riscv_processor #(
     ) instr_mem (
         .clk(clk),
         .we(we_IM_FPGA),  // write enable from BRAM controller
-        .flush(if_id_flush), // flush signal to clear IF/ID register on control hazard    
+        //.flush(if_id_flush), // flush signal to clear IF/ID register on control hazard    
         .addr(pc_current[11:2]),
-        .read_data(instruction_ID),
+        .read_data(instruction_direct),
         .addr_FPGA(instr_mem_addr_FPGA),
         .write_data_FPGA(write_data_IM_FPGA),
         .read_data_FPGA(read_data_IM_FPGA)
     );
 
+    logic delayed_if_id_flush;
+    always_ff @(posedge clk) begin
+        delayed_if_id_flush <= (if_id_flush) ? 1'b1 : 1'b0;
+    end
+     
+    assign instruction_ID = delayed_if_id_flush ? 32'b0 : instruction_direct; // NOP if flushed, else pass instruction
+
+    
     IF_ID_reg #(.DATA_WIDTH(32)) if_id_reg_inst (
         .clk(clk),
         .rst_n(reset_n),
@@ -141,11 +150,11 @@ module riscv_processor #(
     assign shamt_ID = instruction_ID[24:20];
     assign auipc_or_lui_addr_ID = instruction_ID[31:12];
 
-    always_comb begin
-        if (opcode == 7'b0000000) processor_done = 1'b1;
-        else processor_done = 0;
-    end
-    // assign processor_done = 0;
+    // always_comb begin
+    //     if (opcode == 7'b1111111) processor_done = 1'b1;
+    //     else processor_done = 0;
+    // end
+    assign processor_done = 0;
 
     main_control_unit control_unit (
         .opcode(opcode),
