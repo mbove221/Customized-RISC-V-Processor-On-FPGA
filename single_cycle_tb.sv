@@ -37,7 +37,7 @@ module single_cycle_tb();
    always #5 clk = ~clk; //10ns period
    //unsigned int n = 
    initial begin 
-      n += 5;
+      n += 10;
       $display("Number of lines: %d", n);
       reset_n = 0;
       @(posedge clk);

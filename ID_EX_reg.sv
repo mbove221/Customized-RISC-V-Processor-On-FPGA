@@ -30,7 +30,6 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     input logic [31:0] imm_extended,
     input logic [19:0] auipc_or_lui_addr,
     input logic stop,
-    input logic processor_done,
 
     output logic Branch_out,
     output logic [2:0] BranchType_out,
