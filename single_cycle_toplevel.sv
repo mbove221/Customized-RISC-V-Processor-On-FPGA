@@ -45,6 +45,8 @@ module riscv_processor #(
 
     logic if_id_enable, if_id_flush;
 
+    logic stop;
+
     // ========================= EX stage =========================
     logic Branch_EX, MemRead_EX, MemtoReg_EX, ALUSrc_EX, RegWrite_EX;
     logic [2:0] BranchType_EX;
@@ -86,15 +88,11 @@ module riscv_processor #(
     logic load_use_hazard_ex;
     logic control_stall;
 
- 
-
-
     // ========== Program Counter ==========
     program_counter pc_inst (
         .clk(clk),
         .reset_n(reset_n),
         .pc_write(pc_write),
-        .processor_done(processor_done),
         .pc_next(pc_next),
         .pc(pc_current)
     );
@@ -106,8 +104,7 @@ module riscv_processor #(
     );
 
     logic [31:0] instruction_direct;
-    logic [9:0] instr_mem_addr;
-    assign instr_mem_addr = (!pc_write) ? 0 : pc_current[11:2];
+
     // ========== Instruction Memory ==========
     instruction_memory #(
         .ADDR_WIDTH(10),
@@ -159,12 +156,6 @@ module riscv_processor #(
     assign funct7 = instruction_ID[31:25];
     assign shamt_ID = instruction_ID[24:20];
     assign auipc_or_lui_addr_ID = instruction_ID[31:12];
-
-    // always_comb begin
-    //     if (opcode == 7'b1111111) processor_done = 1'b1;
-    //     else processor_done = 0;
-    // end
-    assign processor_done = 0;
 
     main_control_unit control_unit (
         .opcode(opcode),
@@ -259,8 +250,10 @@ module riscv_processor #(
 
 
     assign control_stall = load_use_hazard_ex;
-    assign pc_write = ~control_stall;
+    assign pc_write = ~control_stall & ~processor_done;
     assign if_id_enable = ~control_stall;
+    
+    assign stop = (opcode == 7'b1111111);
 
     ID_EX_reg #(.DATA_WIDTH(32)) id_ex_reg_inst (
         .clk(clk),
@@ -289,6 +282,8 @@ module riscv_processor #(
         .reg_write_addr(rd),
         .imm_extended(imm_extended_ID),
         .auipc_or_lui_addr(auipc_or_lui_addr_ID),
+        .stop(stop),
+        .processor_done(processor_done),
 
         .Branch_out(Branch_EX),
         .BranchType_out(BranchType_EX),
@@ -312,7 +307,8 @@ module riscv_processor #(
         .reg_read_data2_out(reg_read_data2_EX),
         .reg_write_addr_out(reg_write_addr_EX),
         .imm_extended_out(imm_extended_EX),
-        .auipc_or_lui_addr_out(auipc_or_lui_addr_EX)
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_EX),
+        .stop_out(processor_done)
     );
 
 // Decode-stage forwarding to build source operands before ID/EX latch
@@ -374,7 +370,7 @@ module riscv_processor #(
             branch_jump_target_EX = (rs1_fwd_EX + imm_extended_EX) & 32'hFFFFFFFE;
     end
 
-    assign control_redirect_EX = branch_taken_EX | Jal_EX | Jalr_EX;
+    assign control_redirect_EX = branch_taken_EX | Jal_EX | Jalr_EX | processor_done;
     assign if_id_flush = control_redirect_EX;
     assign id_ex_flush = control_stall | control_redirect_EX;
 

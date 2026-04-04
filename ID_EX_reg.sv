@@ -29,6 +29,8 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     input logic [4:0] reg_write_addr,
     input logic [31:0] imm_extended,
     input logic [19:0] auipc_or_lui_addr,
+    input logic stop,
+    input logic processor_done,
 
     output logic Branch_out,
     output logic [2:0] BranchType_out,
@@ -52,11 +54,12 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
     output logic [31:0] reg_read_data2_out,
     output logic [4:0] reg_write_addr_out,
     output logic [31:0] imm_extended_out,
-    output logic [19:0] auipc_or_lui_addr_out
+    output logic [19:0] auipc_or_lui_addr_out,
+    output logic stop_out
 );
 
     always_ff @(posedge clk) begin
-        if (!rst_n || flush || processor_done) begin
+        if(processor_done) begin
             Branch_out <= 1'b0;
             BranchType_out <= 3'b0;
             MemRead_out <= 1'b0;
@@ -80,6 +83,33 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
             reg_write_addr_out <= 5'b0;
             imm_extended_out <= 32'b0;
             auipc_or_lui_addr_out <= 20'b0;
+            stop_out <= 1'b1;
+        end
+        else if (!rst_n || flush) begin
+            Branch_out <= 1'b0;
+            BranchType_out <= 3'b0;
+            MemRead_out <= 1'b0;
+            MemtoReg_out <= 1'b0;
+            ALUOp_out <= alu_op_t'(0);
+            MemWrite_out <= 4'b0;
+            ALUSrc_out <= 1'b0;
+            RegWrite_out <= 1'b0;
+            MemReadSigned_out <= 1'b0;
+            MemReadSize_out <= 2'b0;
+            JAL_out <= 1'b0;
+            JALR_out <= 1'b0;
+            auipc_out <= 1'b0;
+            lui_out <= 1'b0;
+            shamt_out <= 5'b0;
+            rs1_out <= 5'b0;
+            rs2_out <= 5'b0;
+            pc_out <= 32'b0;
+            reg_read_data1_out <= 32'b0;
+            reg_read_data2_out <= 32'b0;
+            reg_write_addr_out <= 5'b0;
+            imm_extended_out <= 32'b0;
+            auipc_or_lui_addr_out <= 20'b0;
+            stop_out <= 1'b0;
         end else begin
             Branch_out <= Branch;
             BranchType_out <= BranchType;
@@ -104,6 +134,7 @@ module ID_EX_reg #(parameter DATA_WIDTH = 32)
             reg_write_addr_out <= reg_write_addr;
             imm_extended_out <= imm_extended;
             auipc_or_lui_addr_out <= auipc_or_lui_addr;
+            stop_out <= stop;
         end
     end
 

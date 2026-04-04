@@ -387,7 +387,22 @@ module main_control_unit(input [6:0] opcode,
 				AuiPc = 1;	
 				Lui = 0;
 			end
-
+			
+			//opcode for STOP instruction
+			7'b1111111 : begin
+				Branch = 0;
+				MemRead = 0; //Don't read from memory
+				MemtoReg = 0; //Don't consider writing from memory
+				ALUOp = ADD; //Default to ADD operation
+				MemWrite = 4'b0; //Don't write to memory
+				ALUSrc = 0; //Use the value specified in the immediate (I-type)
+				RegWrite = 0; //Write to the register file
+				Sel_imm = 0;
+				Jal = 0;
+				JalR = 0;
+				AuiPc = 0;	
+				Lui = 0;
+			end
 		endcase
 		
 	end
