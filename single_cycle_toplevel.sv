@@ -106,8 +106,8 @@ module riscv_processor #(
     );
 
     logic [31:0] instruction_direct;
-    //logic [9:0] instr_mem_addr;
-    // assign instr_mem_addr = (if_id_flush) ? 0 : pc_current[11:2];
+    logic [9:0] instr_mem_addr;
+    assign instr_mem_addr = (!pc_write) ? 0 : pc_current[11:2];
     // ========== Instruction Memory ==========
     instruction_memory #(
         .ADDR_WIDTH(10),
@@ -124,13 +124,23 @@ module riscv_processor #(
     );
 
     logic delayed_if_id_flush;
+    logic delayed_control_stall;
+    logic [31:0] delayed_instruction_ID;
+
     always_ff @(posedge clk) begin
         delayed_if_id_flush <= (if_id_flush) ? 1'b1 : 1'b0;
     end
-     
-    assign instruction_ID = delayed_if_id_flush ? 32'b0 : instruction_direct; // NOP if flushed, else pass instruction
-
     
+    
+    assign instruction = delayed_if_id_flush ? 32'b0 : instruction_direct; // NOP if flushed, else pass instruction
+
+    always_ff @(posedge clk) begin
+        delayed_control_stall <= control_stall;
+        delayed_instruction_ID <= instruction_ID;
+    end
+
+    assign instruction_ID = (delayed_control_stall) ? delayed_instruction_ID : instruction; // hold instruction if stalled, else pass new instruction
+
     IF_ID_reg #(.DATA_WIDTH(32)) if_id_reg_inst (
         .clk(clk),
         .rst_n(reset_n),
