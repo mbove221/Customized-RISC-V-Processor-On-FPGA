@@ -1,5 +1,5 @@
 module data_indexer (
-    input MemReadSize,
+    input [1:0] MemReadSize,
     input [1:0] offset,
     input [31:0] mem_read_data,
     output logic [15:0] indexed_data

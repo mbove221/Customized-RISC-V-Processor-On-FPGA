@@ -16,7 +16,9 @@ module data_memory #(
 
     initial begin
         ram[4] = 4;
-        ram[5] = 5;
+        ram[5] = 5;		
+		ram[2] = 32'hABABABAB;
+		ram[1] = 32'hCDCDCDCD;
         ram[0] = 32'hDEADBEEF;
     end
 
@@ -29,8 +31,7 @@ module data_memory #(
             ram[addr][23:16] <= write_data[23:16];
         if(we[3]) 
             ram[addr][31:24] <= write_data[31:24];
+        read_data <= ram[addr];
     end
-
-    assign read_data = ram[addr];
 
 endmodule

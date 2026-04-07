@@ -4,11 +4,13 @@ module instruction_memory #(
     DATA_WIDTH = 32
 )(
     input clk, 
-    input we,
+    input [3:0] we,
     //input re, //Will need when we have pipelined processor
     input [ADDR_WIDTH-1 : 0] addr,
-    input [DATA_WIDTH-1 : 0] write_data,
-    output logic [DATA_WIDTH-1 : 0] read_data
+    input [ADDR_WIDTH-1 : 0] addr_FPGA,
+    input [DATA_WIDTH-1 : 0] write_data_FPGA,
+    output logic [DATA_WIDTH-1 : 0] read_data,
+    output logic [DATA_WIDTH-1 : 0] read_data_FPGA
 );
     
     // Declare ram logic as 2^ADDR_WIDTH-sized array (i.e. 10 = 1024 entries) with DATA_WIDTH-sized entries
@@ -19,11 +21,15 @@ module instruction_memory #(
     end
 
     always @(posedge clk) begin
-        if(we) begin
-            ram[addr] <= write_data;
-        end
+        if(we[0] ) 
+            ram[addr_FPGA][7:0] <= write_data_FPGA[7:0];
+        if(we[1]) 
+            ram[addr_FPGA][15:8] <= write_data_FPGA[15:8];
+        if(we[2]) 
+            ram[addr_FPGA][23:16] <= write_data_FPGA[23:16];
+        if(we[3]) 
+            ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
+        read_data_FPGA <= ram[addr_FPGA];
+        read_data <= ram[addr];
     end
-
-    assign read_data = ram[addr];
-
 endmodule
