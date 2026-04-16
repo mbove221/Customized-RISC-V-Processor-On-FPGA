@@ -41,7 +41,7 @@ module single_cycle_tb();
       $display("Number of lines: %d", n);
       reset_n = 0;
       @(posedge clk);
-      @(posedge clk);
+      //@(posedge clk);
       #1; reset_n = 1;
       @(posedge clk);
       for (int i = 0; i < n; i++) begin

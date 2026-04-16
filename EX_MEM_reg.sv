@@ -15,6 +15,8 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     input auipc,
     input lui,
     input [19:0] auipc_or_lui_addr,
+    input [4:0] rs1, // For forwarding logic
+    input [4:0] rs2, // For forwarding logic
 
     output logic MemtoReg_out,      
     output logic [3:0] MemWrite_out,      
@@ -28,7 +30,9 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     output logic [31:0] pc_out,
     output logic [31:0] reg_read_data2_out,
     output logic [4:0] reg_write_addr_out,
-    output logic [19:0] auipc_or_lui_addr_out 
+    output logic [19:0] auipc_or_lui_addr_out,
+    output logic [4:0] rs1_out, // For store instr forwarding logic
+    output logic [4:0] rs2_out  // For store instr forwarding logic
 );
 
     // Data path registers
@@ -47,6 +51,8 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     logic auipc_reg;
     logic lui_reg;
     logic [19:0] auipc_or_lui_addr_reg;
+    logic [4:0] rs1_reg;
+    logic [4:0] rs2_reg;
 
     always_ff @(posedge clk) begin
         if (!rst_n) begin
@@ -66,6 +72,8 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
             auipc_reg <= 1'b0;
             lui_reg <= 1'b0;
             auipc_or_lui_addr_reg <= 20'b0;
+            rs1_reg <= 5'b0;
+            rs2_reg <= 5'b0;
         end
         else begin
             // Capture data path inputs
@@ -84,6 +92,8 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
             auipc_reg <= auipc;
             lui_reg <= lui;
             auipc_or_lui_addr_reg <= auipc_or_lui_addr;
+            rs1_reg <= rs1;
+            rs2_reg <= rs2;
         end
     end
 
@@ -92,7 +102,8 @@ module EX_MEM_reg #(parameter DATA_WIDTH = 32)
     assign pc_out = pc_reg;
     assign reg_read_data2_out = reg_read_data2_reg;
     assign reg_write_addr_out = reg_write_addr_reg;
-    
+    assign rs1_out = rs1_reg;
+    assign rs2_out = rs2_reg;
     // Assign control signal outputs
     assign MemtoReg_out = MemtoReg_reg;
     assign MemWrite_out = MemWrite_reg;

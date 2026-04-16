@@ -273,7 +273,18 @@ module riscv_processor #(
     assign pc_write = ~control_stall & ~processor_done;
     assign if_id_enable = ~control_stall;
     
-    assign stop = (opcode == 7'b1111111);
+    
+   //assign stop = (!reset_n) ? 1'b0 : (opcode == 7'b1111111) ? 1'b1 : 1'b0;  // custom "stop" instruction with all bits 1 to signal end of program
+
+    always_comb begin
+        if(!reset_n) stop = 0;
+        else begin
+            if (opcode == 7'b1111111) // custom "stop" instruction with all bits 1 to signal end of program
+                stop = 1'b1;
+            else
+                stop = 1'b0;
+        end
+    end
 
     ID_EX_reg #(.DATA_WIDTH(32)) id_ex_reg_inst (
         .clk(clk),
@@ -345,6 +356,7 @@ module riscv_processor #(
         //     rs1_fwd_EX = mem_to_reg_MEM;
         else if (RegWrite_WB && (reg_write_addr_WB == rs1_EX))
             rs1_fwd_EX = reg_write_data;
+        
 
         // if (RegWrite_EX && !MemtoReg_EX && (reg_write_addr_EX == rs2_EX))
         //     rs2_fwd_EX = alu_result_EX;
@@ -394,6 +406,8 @@ module riscv_processor #(
     assign if_id_flush = control_redirect_EX;
     assign id_ex_flush = control_stall | control_redirect_EX;
 
+    logic [4:0] rs1_MEM, rs2_MEM;
+
     EX_MEM_reg #(.DATA_WIDTH(32)) ex_mem_reg_inst (
         .clk(clk),
         .rst_n(reset_n),
@@ -410,6 +424,8 @@ module riscv_processor #(
         .auipc(auipc_EX),
         .lui(lui_EX),
         .auipc_or_lui_addr(auipc_or_lui_addr_EX),
+        .rs1(rs1_EX),
+        .rs2(rs2_EX),
 
         .MemtoReg_out(MemtoReg_MEM),
         .MemWrite_out(MemWrite_MEM),
@@ -423,7 +439,9 @@ module riscv_processor #(
         .pc_out(pc_MEM),
         .reg_read_data2_out(reg_read_data2_MEM),
         .reg_write_addr_out(reg_write_addr_MEM),
-        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM)
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM),
+        .rs1_out(rs1_MEM),
+        .rs2_out(rs2_MEM)
     );
 
     logic [3:0] MemStoreSize;
@@ -440,6 +458,15 @@ module riscv_processor #(
         .mem_write_data_out(mem_write_data_out)
     );
 
+    logic [31:0] mem_write_data;
+    always_comb begin
+        mem_write_data = mem_write_data_out;
+        if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs1_MEM ))
+            mem_write_data = reg_write_data;
+        else if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs2_MEM ))
+            mem_write_data = reg_write_data;   
+    end
+
     data_memory #(
         .ADDR_WIDTH(10),
         .DATA_WIDTH(32)
@@ -447,7 +474,7 @@ module riscv_processor #(
         .clk(clk),
         .we(MemStoreSize),
         .addr((alu_result_MEM[11:2])),
-        .write_data(mem_write_data_out),
+        .write_data(mem_write_data),
         .read_data(mem_read_data_MEM)
     );
 
