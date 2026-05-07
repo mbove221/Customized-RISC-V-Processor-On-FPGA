@@ -461,9 +461,9 @@ module riscv_processor #(
     logic [31:0] mem_write_data;
     always_comb begin
         mem_write_data = mem_write_data_out;
-        if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs1_MEM ))
-            mem_write_data = reg_write_data;
-        else if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs2_MEM ))
+        // if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs1_MEM ))
+        //     mem_write_data = reg_write_data;
+        if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs2_MEM ))
             mem_write_data = reg_write_data;   
     end
 
