@@ -44,26 +44,26 @@ module main_control_unit(input [6:0] opcode,
 
 	//logic funct6 = funct7[6:1]; //6 most significang bits for immediate-type instructions
 	always_comb begin
-		Branch = 1'bx;
-		BranchType = 3'bx;
-		BranchSigned = 1'bx;
-		MemRead = 1'bx;
-		MemtoReg = 1'bx;
+		Branch = 1'b0;
+		BranchType = 3'b0;
+		BranchSigned = 1'b0;
+		MemRead = 1'b0;
+		MemtoReg = 1'b0;
 		//Note: ALUOp have following values:
 		//0: ADD (for LW, SW, add, addi, etc.)
 		//1: SUB (for branches, sub, etc.)
 		//...other types
 		ALUOp = alu_op_t'(4'hx); //Default to unknown
-		MemWrite = 4'bx;
-		ALUSrc = 1'bx;
-		RegWrite = 1'bx;
+		MemWrite = 4'b0;
+		ALUSrc = 1'b0;
+		RegWrite = 1'b0;
 		MemReadSigned = 1'bx;
 		MemReadSize = 2'bx;
 		Sel_imm = 1'bx;
-		Jal = 1'bx;
-		JalR = 1'bx;
-		AuiPc = 1'bx;
-		Lui = 1'bx;
+		Jal = 1'b0;
+		JalR = 1'b0;
+		AuiPc = 1'b0;
+		Lui = 1'b0;
 
 		case(opcode)
 			//Load from memory instruction 
@@ -387,8 +387,9 @@ module main_control_unit(input [6:0] opcode,
 				AuiPc = 1;	
 				Lui = 0;
 			end
+			
 			//opcode for STOP instruction
-			7'b0000000 : begin
+			7'b1111111 : begin
 				Branch = 0;
 				MemRead = 0; //Don't read from memory
 				MemtoReg = 0; //Don't consider writing from memory
@@ -402,7 +403,6 @@ module main_control_unit(input [6:0] opcode,
 				AuiPc = 0;	
 				Lui = 0;
 			end
-
 		endcase
 		
 	end

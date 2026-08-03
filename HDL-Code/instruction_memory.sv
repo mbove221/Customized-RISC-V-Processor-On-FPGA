@@ -5,7 +5,7 @@ module instruction_memory #(
 )(
     input clk, 
     input [3:0] we,
-    //input re, 
+    //input re, //Will need when we have pipelined processor
     input [ADDR_WIDTH-1 : 0] addr,
     input [ADDR_WIDTH-1 : 0] addr_FPGA,
     input [DATA_WIDTH-1 : 0] write_data_FPGA,
@@ -14,24 +14,22 @@ module instruction_memory #(
 );
     
     // Declare ram logic as 2^ADDR_WIDTH-sized array (i.e. 10 = 1024 entries) with DATA_WIDTH-sized entries
-    logic [DATA_WIDTH-1 : 0] ram [0:(1<<ADDR_WIDTH)-1];
+    logic [DATA_WIDTH-1 : 0] ram [(1<<ADDR_WIDTH)-1 : 0];
     
     initial begin
         $readmemh("instructions.txt", ram);
-    end 
+    end
 
     always @(posedge clk) begin
         if(we[0] ) 
-                ram[addr_FPGA][7:0] <= write_data_FPGA[7:0];
-            if(we[1]) 
-                ram[addr_FPGA][15:8] <= write_data_FPGA[15:8];
-            if(we[2]) 
-                ram[addr_FPGA][23:16] <= write_data_FPGA[23:16];
-            if(we[3]) 
-                ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
+            ram[addr_FPGA][7:0] <= write_data_FPGA[7:0];
+        if(we[1]) 
+            ram[addr_FPGA][15:8] <= write_data_FPGA[15:8];
+        if(we[2]) 
+            ram[addr_FPGA][23:16] <= write_data_FPGA[23:16];
+        if(we[3]) 
+            ram[addr_FPGA][31:24] <= write_data_FPGA[31:24];
         read_data_FPGA <= ram[addr_FPGA];
+        read_data <= ram[addr];
     end
-
-    assign read_data = ram[addr];
-
 endmodule

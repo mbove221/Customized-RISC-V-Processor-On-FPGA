@@ -5,7 +5,9 @@ module write_data_shifter
     output logic [31:0] mem_write_data_out
 );
 
+//always_comb begin
     //Store halfword
     assign mem_write_data_out = mem_write_data_in << (alu_result * 8);
+//end
 
 endmodule
