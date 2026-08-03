@@ -51,9 +51,9 @@ his Software without prior written authorization from Xilinx.
 #include "xil_printf.h"
 
 //For these addresses, only writes to RSTN_ADDR LSB controls reset, Read processor_done LSB
-#define RSTN_ADDR ((volatile unsigned int*) XPAR_SINGLE_CYCLE_0_S00_AXI_BASEADDR)
+#define RSTN_ADDR ((volatile unsigned int*) XPAR_PIPELINED_PROCESSOR_0_S00_AXI_BASEADDR)
 
-#define PROCESSOR_DONE_ADDR ((volatile unsigned int*)(XPAR_SINGLE_CYCLE_0_S00_AXI_BASEADDR + 4))
+#define PROCESSOR_DONE_ADDR ((volatile unsigned int*)(XPAR_PIPELINED_PROCESSOR_0_S00_AXI_BASEADDR + 4))
 
 #define INSTRUCTION_MEM_ADDR ((volatile unsigned int*) XPAR_AXI_BRAM_CTRL_0_S_AXI_BASEADDR)
 
