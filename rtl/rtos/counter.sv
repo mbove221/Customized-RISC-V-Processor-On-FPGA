@@ -16,7 +16,7 @@ module counter(
             else counter_irq <= 0;
 
             if(counter == CMP) counter <= 0;
-            else counter <= counter + 1;
+            else if(counteren) counter <= counter + 1;
         end
     end
 

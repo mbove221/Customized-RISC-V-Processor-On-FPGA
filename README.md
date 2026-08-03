@@ -70,8 +70,22 @@ The core is wrapped as an AXI4-Lite peripheral on the Zynq PS/PL boundary:
   loaded at runtime without re-synthesising;
 - a second **AXI BRAM controller** exposes the register file for result read-back.
 
-The AXI wrapper itself is generated and maintained inside the Vivado block design (as the
-`pipelined_processor` IP) and is intentionally not version-controlled here — only the core RTL is.
+The wrapper RTL lives in `rtl/fpga/`. It was produced by the Vivado IP packager, so the module
+names still carry the project's original `single_cycle` prefix even though they now instantiate
+the pipelined core:
+
+- `single_cycle_v2_v1_0.v` — IP top level (module `single_cycle_v2_0`). Instantiates the CSR
+  block and `riscv_processor`, and passes the BRAM-side ports straight through to the PS.
+- `single_cycle_CSR_v1_0_S00_AXI.v` — the AXI4-Lite slave holding the control/status registers.
+
+The CSR map, at word offsets from the peripheral base address:
+
+| Offset | Direction | Signal | Meaning |
+| --- | --- | --- | --- |
+| `0x0` | write | `rstn_ctrl` | bit 0 drives `reset_n` |
+| `0x4` | read | `status` | bit 0 is `processor_done` |
+| `0x8` | write | `mstatus` | bit 0 `mie`, bit 1 `mcounteren` |
+| `0xC` | read | `mepc` | interrupted address latched by the trap logic |
 
 ## Repository layout
 
@@ -88,6 +102,8 @@ rtl/
                data_indexer.sv  write_control_shifter.sv  write_data_shifter.sv
   rtos/        counter.sv           timer interrupt source
   common/      adder, mux, demux, shifter, extender, sign_extension
+  fpga/        single_cycle_v2_v1_0.v          AXI4-Lite IP top level
+               single_cycle_CSR_v1_0_S00_AXI.v control/status registers
 
 sim/           riscv_processor_tb.sv  main_control_unit_tb.sv  reg_file_tb.sv
                instructions.txt       hex image loaded by $readmemh

@@ -100,8 +100,6 @@ module riscv_processor #(
     logic mcounteren;
     logic [31:0] pc_irq;
 
-    
-
     logic counter_interrupt;
 
     assign mie = mstatus[0]; //mstatus[0] = mie bit
