@@ -29,19 +29,18 @@ module single_cycle_tb();
    int n = count_lines("instructions.txt");
    logic clk;
    logic reset_n;
+   logic processor_done;
 
-   riscv_processor dut (.clk(clk), .reset_n(reset_n));
+   riscv_processor dut (.clk(clk), .reset_n(reset_n), .processor_done(processor_done));
 
    //clock
    initial clk = 0;
    always #5 clk = ~clk; //10ns period
    //unsigned int n = 
    initial begin 
-      n += 100;
       $display("Number of lines: %d", n);
       reset_n = 0;
       @(posedge clk);
-      //@(posedge clk);
       #1; reset_n = 1;
       @(posedge clk);
       for (int i = 0; i < n; i++) begin

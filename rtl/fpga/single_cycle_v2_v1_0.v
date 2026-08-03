@@ -89,7 +89,7 @@
 
 	// Add user logic here
 	
-	wire [31:0] rstn_ctrl, status;
+	wire [31:0] rstn_ctrl, status, mepc, mstatus;
 	
 	single_cycle_CSR_v1_0_S00_AXI # ( 
                     .C_S_AXI_DATA_WIDTH(C_S00_AXI_DATA_WIDTH),
@@ -117,7 +117,9 @@
                     .S_AXI_RVALID(s00_axi_rvalid),
                     .S_AXI_RREADY(s00_axi_rready),
                     .status(status),
-                    .rstn_ctrl(rstn_ctrl)
+                    .rstn_ctrl(rstn_ctrl),
+                    .mepc(mepc),
+                    .mstatus(mstatus)
                 );
                 
        riscv_processor single_cycle_processor(
@@ -129,7 +131,9 @@
                     .rf_addr_FPGA(bram_rf_addr),
                     .read_data_IM_FPGA(bram_rddata_im),
                     .read_data_rf_FPGA(bram_rddata_rf),
-                    .processor_done(status[0])
+                    .processor_done(status[0]),
+                    .mepc(mepc),
+                    .mstatus(mstatus)
 //                    .program_counter(status[4:1])
                         //Use bram control values like bram_addr, bram_clk, etc.
                     );         

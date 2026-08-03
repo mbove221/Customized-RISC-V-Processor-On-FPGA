@@ -2,7 +2,8 @@ module riscv_processor #(
     localparam IM_ADDR_WIDTH = 13,
     localparam DM_ADDR_WIDTH = 13,
     localparam DATA_WIDTH = 32,
-    localparam RF_ADDR_WIDTH = 13
+    localparam RF_ADDR_WIDTH = 13,
+    localparam COUNTER_INTERRUPT_VAL = 4 //89_000_000 //89_000_000 is the clock frequency
 )(
     input logic clk,
     input logic reset_n,
@@ -10,10 +11,12 @@ module riscv_processor #(
     input [DATA_WIDTH-1 : 0] write_data_IM_FPGA,
     input [3:0] we_IM_FPGA,
     input [RF_ADDR_WIDTH-1:0] rf_addr_FPGA,
+    input [31 : 0] mstatus,
     output logic [DATA_WIDTH-1 : 0] read_data_IM_FPGA,
     output logic [DATA_WIDTH-1 : 0] read_data_rf_FPGA,
     output logic processor_done,
-    output logic [3:0] program_counter
+    output logic [31:0] program_counter,
+    output logic [31:0] mepc
 );
 
     // ========================= IF stage =========================
@@ -92,6 +95,25 @@ module riscv_processor #(
 
     logic processor_done_out[0:2];
 
+    // ======================== RTOS Logic ==========================
+    logic mie; //interrupt enable
+    logic mcounteren;
+    logic [31:0] pc_irq;
+
+    logic counter_interrupt;
+
+    assign mie = mstatus[0]; //mstatus[0] = mie bit
+    assign mcounteren = mstatus[1]; //mstatus[1] = mcounteren bit
+
+    counter u_counter_irq(
+        .clk(clk),
+        .rst_n(reset_n),
+        .CMP(COUNTER_INTERRUPT_VAL),
+        .counteren(mcounteren),
+        .counter_irq(counter_interrupt)
+    );
+
+
     always_ff @(posedge clk) begin
         if (!reset_n) begin
             processor_done_out[0] <= 1'b0;
@@ -105,6 +127,7 @@ module riscv_processor #(
     end
 
     assign processor_done = processor_done_out[2];
+    assign program_counter = pc_current;
 
     // ========== Program Counter ==========
     program_counter pc_inst (
@@ -216,7 +239,6 @@ module riscv_processor #(
         .rdata_FPGA(read_data_rf_FPGA)
     );
 
-    
 
     // Immediate generation for RV32I control-flow and ALU/memory operations
     logic signed [31:0] imm_i, imm_s, imm_b, imm_j;
@@ -270,21 +292,10 @@ module riscv_processor #(
 
 
     assign control_stall = load_use_hazard_ex;
-    assign pc_write = ~control_stall & ~processor_done;
+    assign pc_write = (~control_stall | counter_interrupt)  & ~processor_done;
     assign if_id_enable = ~control_stall;
     
-    
-   //assign stop = (!reset_n) ? 1'b0 : (opcode == 7'b1111111) ? 1'b1 : 1'b0;  // custom "stop" instruction with all bits 1 to signal end of program
-
-    always_comb begin
-        if(!reset_n) stop = 0;
-        else begin
-            if (opcode == 7'b1111111) // custom "stop" instruction with all bits 1 to signal end of program
-                stop = 1'b1;
-            else
-                stop = 1'b0;
-        end
-    end
+    assign stop = (opcode == 7'b1111111);
 
     ID_EX_reg #(.DATA_WIDTH(32)) id_ex_reg_inst (
         .clk(clk),
@@ -356,7 +367,6 @@ module riscv_processor #(
         //     rs1_fwd_EX = mem_to_reg_MEM;
         else if (RegWrite_WB && (reg_write_addr_WB == rs1_EX))
             rs1_fwd_EX = reg_write_data;
-        
 
         // if (RegWrite_EX && !MemtoReg_EX && (reg_write_addr_EX == rs2_EX))
         //     rs2_fwd_EX = alu_result_EX;
@@ -406,8 +416,6 @@ module riscv_processor #(
     assign if_id_flush = control_redirect_EX;
     assign id_ex_flush = control_stall | control_redirect_EX;
 
-    logic [4:0] rs1_MEM, rs2_MEM;
-
     EX_MEM_reg #(.DATA_WIDTH(32)) ex_mem_reg_inst (
         .clk(clk),
         .rst_n(reset_n),
@@ -424,8 +432,6 @@ module riscv_processor #(
         .auipc(auipc_EX),
         .lui(lui_EX),
         .auipc_or_lui_addr(auipc_or_lui_addr_EX),
-        .rs1(rs1_EX),
-        .rs2(rs2_EX),
 
         .MemtoReg_out(MemtoReg_MEM),
         .MemWrite_out(MemWrite_MEM),
@@ -439,9 +445,7 @@ module riscv_processor #(
         .pc_out(pc_MEM),
         .reg_read_data2_out(reg_read_data2_MEM),
         .reg_write_addr_out(reg_write_addr_MEM),
-        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM),
-        .rs1_out(rs1_MEM),
-        .rs2_out(rs2_MEM)
+        .auipc_or_lui_addr_out(auipc_or_lui_addr_MEM)
     );
 
     logic [3:0] MemStoreSize;
@@ -458,15 +462,6 @@ module riscv_processor #(
         .mem_write_data_out(mem_write_data_out)
     );
 
-    logic [31:0] mem_write_data;
-    always_comb begin
-        mem_write_data = mem_write_data_out;
-        // if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs1_MEM ))
-        //     mem_write_data = reg_write_data;
-        if (RegWrite_WB && MemWrite_MEM && (reg_write_addr_WB == rs2_MEM ))
-            mem_write_data = reg_write_data;   
-    end
-
     data_memory #(
         .ADDR_WIDTH(10),
         .DATA_WIDTH(32)
@@ -474,7 +469,7 @@ module riscv_processor #(
         .clk(clk),
         .we(MemStoreSize),
         .addr((alu_result_MEM[11:2])),
-        .write_data(mem_write_data),
+        .write_data(mem_write_data_out),
         .read_data(mem_read_data_MEM)
     );
 
@@ -583,8 +578,17 @@ module riscv_processor #(
     // PC update: predict not taken, redirect on taken branch/jump in EX
     always_comb begin
         pc_next = pc_plus_4;
-        if (control_redirect_EX)
+        if (counter_interrupt) pc_next = 36;
+        else if (control_redirect_EX)
             pc_next = branch_jump_target_EX;
+    end
+
+    always @(posedge clk) begin
+        if(counter_interrupt) begin
+            if(control_redirect_EX) mepc <= branch_jump_target_EX;
+            else if (control_stall) mepc <= pc_current;
+            else mepc <= pc_plus_4;
+        end
     end
 
 endmodule

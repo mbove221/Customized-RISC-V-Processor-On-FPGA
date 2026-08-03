@@ -17,7 +17,9 @@
 		// Users to add ports here
         
         input [31:0] status,
+        input [31:0] mepc,
         output [31:0] rstn_ctrl,
+        output [31:0] mstatus,
         
 		// User ports ends
 		// Do not modify the ports beyond this line
@@ -122,6 +124,7 @@
 	reg	 aw_en;
     
     assign rstn_ctrl = slv_reg0;
+    assign mstatus = slv_reg2;
 
 	// I/O Connections assignments
 
@@ -415,10 +418,10 @@
 	begin
 	      // Address decoding for reading registers
 	      case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-	        3'h0   : reg_data_out <= slv_reg0;
+	        3'h0   : reg_data_out <= slv_reg0; //slv_reg0 = rstn_ctrl
 	        3'h1   : reg_data_out <= status;
-	        3'h2   : reg_data_out <= slv_reg2;
-	        3'h3   : reg_data_out <= slv_reg3;
+	        3'h2   : reg_data_out <= slv_reg2; //slv_reg2 = mstatus
+	        3'h3   : reg_data_out <= mepc;
 	        3'h4   : reg_data_out <= slv_reg4;
 	        3'h5   : reg_data_out <= slv_reg5;
 	        3'h6   : reg_data_out <= slv_reg6;
